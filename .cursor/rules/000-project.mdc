@@ -1,0 +1,18 @@
+---
+description: Core project rules for ClinicBoost SMS
+alwaysApply: true
+---
+
+Read `CLAUDE.md` at the repo root for full context before writing code.
+
+Stack is fixed: Next.js App Router + TypeScript, Postgres 16, Drizzle, pg-boss,
+Docker Compose, Caddy. Do not introduce Redis, a vector database, embeddings,
+or additional services. The production server is 4GB RAM with 8.7GB disk.
+
+Build in vertical slices that run end to end, not in horizontal layers.
+
+Prefer boring, legible code. This is handed over to a non-technical owner who
+may bring in another developer later.
+
+Out of scope, do not build: self-serve clinic signup, billing, reseller portal,
+missed-call text-back.

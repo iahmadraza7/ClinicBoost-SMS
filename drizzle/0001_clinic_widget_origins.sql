@@ -1,0 +1,1 @@
+ALTER TABLE "clinics" ADD COLUMN "widget_origins" text[] DEFAULT '{}'::text[] NOT NULL;

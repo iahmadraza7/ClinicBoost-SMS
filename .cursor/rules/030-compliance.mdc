@@ -1,0 +1,30 @@
+---
+description: Australian regulatory and SMS constraints
+alwaysApply: true
+---
+
+Australian context. These are legal constraints, not preferences.
+
+TGA: botulinum toxin and dermal fillers are Schedule 4 prescription medicines.
+Referring to them in advertising directed at the public is prohibited, including
+brand names, category terms such as "anti wrinkle injections", nicknames, and
+any price or discount attached to them. The practitioner exemption covers a
+clinician advising their own patient, not an automated SMS sent by an agency.
+Enforced via a per-clinic blocked terms list checked against both model output
+AND knowledge base content.
+
+Privacy Act APP 8: enquiry text and mobile numbers stay in Sydney. Notification
+emails and SMS therefore contain clinic name and a dashboard link only. No
+question text, no mobile number, no name. Resend stores account data in the US
+regardless of send region, which is why the payload must be empty of PII.
+
+Spam Act: inbound enquiry implies consent to reply. Consent records are stored
+per contact per clinic. Opt-out is tracked per contact per clinic and checked
+before every send.
+
+SMS formatting, from the client's existing skill files:
+- No emojis, no em dashes, no smart quotes or ellipsis characters
+- Plain casual Australian tone, no email-style signoffs
+- Match the customer's message length, do not out-text them
+- One question per message
+- Segments cost money. Cap draft length and show a live segment count.

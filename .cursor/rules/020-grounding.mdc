@@ -1,0 +1,34 @@
+---
+description: AI drafting and the deterministic validation layer
+globs: ["src/server/ai/**", "src/server/validation/**", "src/worker/**"]
+alwaysApply: false
+---
+
+The model returns JSON only, matching the contract in `CLAUDE.md`. Parse
+defensively: strip fences, validate with Zod, never trust the shape.
+
+The model's `self_confidence` is NOT the send gate. It is the last of twelve
+checks. The real gate is that every factual sentence resolves to a knowledge
+base entry id belonging to this clinic.
+
+Hard blocks, no exceptions, regardless of confidence:
+
+- Prices not string-matching a price in the clinic KB
+- Treatment intervals not matching the KB
+- Contraindications or medical suitability not explicitly in the KB
+- URLs not present verbatim in the KB
+- Any term on the clinic's blocked terms list
+- Anything in that clinic's "do not answer" list
+
+Failure routes to the approval queue with a machine-readable reason code, never
+to a silent send and never to a softened guess.
+
+Distinguish `blocked` (explicitly listed as do-not-answer, deflect specifically)
+from `missing` (absent from the KB, flag as unanswerable and notify).
+
+The validator gets unit tests with real fixtures drawn from the clinic files.
+This module is the core of the product. Write it carefully, do not generate it
+and move on.
+
+Send the whole clinic KB in the system prompt with prompt caching. Do not chunk,
+embed, or retrieve.

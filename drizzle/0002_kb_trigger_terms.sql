@@ -1,0 +1,1 @@
+ALTER TABLE "kb_entries" ADD COLUMN "trigger_terms" text[] DEFAULT '{}'::text[] NOT NULL;

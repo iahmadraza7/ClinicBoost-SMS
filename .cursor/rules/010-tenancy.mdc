@@ -1,0 +1,18 @@
+---
+description: Multi-tenant data isolation
+alwaysApply: true
+---
+
+Single database, shared schema, 11 clinics, one operator.
+
+Every domain table carries a non-null `clinic_id` foreign key.
+
+All data access goes through a repository layer in `src/server/repo/`. Those
+functions take `clinicId` as an explicit first argument. Never call the Drizzle
+client directly from a route handler, server action, or worker job.
+
+There is no cross-clinic read anywhere in the product. If a query would need
+one, that is a bug in the requirement, not a reason to widen the scope.
+
+The audit log records `clinic_id`, actor, action, before and after. Every
+approve, edit, reject, send, and knowledge base change is logged.

@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.env
+.env.local
+.env.*.local
+knowledge-source/raw
+knowledge-source/converted
+docs
+*.log
+Dockerfile
+.dockerignore
