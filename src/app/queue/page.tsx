@@ -47,9 +47,20 @@ export default async function QueuePage() {
               : `${rows.length} waiting, newest first.`}
           </p>
         </div>
-        <p className="text-xs text-neutral-500">
-          Approving records the decision. Sending is not wired up yet.
-        </p>
+        {/*
+          Whether an approval actually reaches the customer is the one thing an
+          operator must not have to guess. In console mode the reply is written
+          to the log and nothing is sent.
+        */}
+        {env.SMS_PROVIDER === "mobile_message" ? (
+          <p className="text-xs text-neutral-500">
+            Approving sends the reply.
+          </p>
+        ) : (
+          <p className="text-xs font-medium text-amber-700">
+            Test mode. Approving does not send anything.
+          </p>
+        )}
       </header>
 
       <QueueList rows={rows} maxSegments={env.MAX_SEGMENTS_PER_DRAFT} />
