@@ -1,6 +1,8 @@
 import { formatSydneyDateTime, formatSydneyTime } from "@/lib/time";
-import * as repo from "@/server/repo";
+import { requireOperator } from "@/server/auth";
 import { env } from "@/server/env";
+import * as repo from "@/server/repo";
+import { SignOut } from "../sign-out";
 import { QueueList, type QueueRow } from "./queue-list";
 
 export const dynamic = "force-dynamic";
@@ -34,11 +36,12 @@ async function loadQueue(): Promise<QueueRow[]> {
 }
 
 export default async function QueuePage() {
+  const operator = await requireOperator();
   const rows = await loadQueue();
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
-      <header className="mb-6 flex items-baseline justify-between">
+      <header className="mb-6 flex items-baseline justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold">Approval queue</h1>
           <p className="mt-1 text-sm text-neutral-600">
@@ -52,15 +55,18 @@ export default async function QueuePage() {
           operator must not have to guess. In console mode the reply is written
           to the log and nothing is sent.
         */}
-        {env.SMS_PROVIDER === "mobile_message" ? (
-          <p className="text-xs text-neutral-500">
-            Approving sends the reply.
-          </p>
-        ) : (
-          <p className="text-xs font-medium text-amber-700">
-            Test mode. Approving does not send anything.
-          </p>
-        )}
+        <div className="flex flex-col items-end gap-1">
+          <SignOut email={operator.email} />
+          {env.SMS_PROVIDER === "mobile_message" ? (
+            <p className="text-xs text-neutral-500">
+              Approving sends the reply.
+            </p>
+          ) : (
+            <p className="text-xs font-medium text-amber-700">
+              Test mode. Approving does not send anything.
+            </p>
+          )}
+        </div>
       </header>
 
       <QueueList rows={rows} maxSegments={env.MAX_SEGMENTS_PER_DRAFT} />

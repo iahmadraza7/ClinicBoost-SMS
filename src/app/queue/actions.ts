@@ -4,14 +4,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { segmentCount } from "@/lib/segments";
+import { requireOperator } from "@/server/auth";
 import { env } from "@/server/env";
 import * as repo from "@/server/repo";
 import { queueOutboundReply, startSending } from "@/server/sms/dispatch";
 import { checkSendable, describeBlocks } from "@/server/sms/guards";
-
-function actor(): string {
-  return env.OPERATOR_EMAIL ?? "operator";
-}
 
 const decision = z.object({
   clinicId: z.string().uuid(),
@@ -31,6 +28,8 @@ async function decide(
   state: "approved" | "edited" | "rejected",
   editedBody?: string,
 ): Promise<ActionResult> {
+  const operator = await requireOperator();
+
   const result = await repo.withTransaction(async (tx) => {
     const before = await repo.drafts.getDraft(clinicId, draftId, tx);
     if (!before) return { ok: false as const, error: "Draft not found" };
@@ -41,7 +40,7 @@ async function decide(
     const after = await repo.drafts.decideDraft(
       clinicId,
       draftId,
-      { state, editedBody, decidedBy: actor() },
+      { state, editedBody, decidedBy: operator.email },
       tx,
     );
     if (!after) {
@@ -61,7 +60,7 @@ async function decide(
     await repo.audit.recordAudit(
       clinicId,
       {
-        actor: actor(),
+        actor: operator.email,
         action: `draft.${state}`,
         entityType: "draft",
         entityId: draftId,
@@ -81,7 +80,7 @@ async function decide(
   if (!result.ok) return result;
 
   if (result.messageId) {
-    await startSending(clinicId, result.messageId, actor());
+    await startSending(clinicId, result.messageId, operator.email);
   }
 
   revalidatePath("/queue");
@@ -118,6 +117,7 @@ async function refuseIfUnsendable(
 }
 
 export async function approveDraft(input: unknown): Promise<ActionResult> {
+  await requireOperator();
   const parsed = decision.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid request" };
 
@@ -132,6 +132,7 @@ export async function approveDraft(input: unknown): Promise<ActionResult> {
 }
 
 export async function rejectDraft(input: unknown): Promise<ActionResult> {
+  await requireOperator();
   const parsed = decision.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid request" };
   return decide(parsed.data.clinicId, parsed.data.draftId, "rejected");
@@ -144,6 +145,7 @@ const edit = decision.extend({
 export async function editAndApproveDraft(
   input: unknown,
 ): Promise<ActionResult> {
+  await requireOperator();
   const parsed = edit.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid" };

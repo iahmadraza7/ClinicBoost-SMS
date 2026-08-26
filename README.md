@@ -37,6 +37,27 @@ curl -X POST http://localhost:3000/api/widget/beauty-soiree \
 
 The worker must be running for a draft to appear.
 
+## Operator login
+
+One person, email and password, stored in the environment. There is no signup
+and no second user.
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+npm run hash-password
+```
+
+Put the results in `.env` and `.env.local` as `AUTH_SECRET` and
+`OPERATOR_PASSWORD_HASH`, plus `OPERATOR_EMAIL`. Restart the app.
+
+`/queue` (and everything else) redirects to `/login` until you sign in. The
+widget and the Mobile Message webhooks stay public on purpose: a lead submitting
+a form, and a reply arriving from a phone, cannot wait for Ted to be at his
+desk.
+
+The session cookie lasts twelve hours and is signed with `AUTH_SECRET`. Rotating
+that secret logs the operator out everywhere.
+
 ## Sending SMS
 
 `SMS_PROVIDER` decides whether anything actually leaves the building.
@@ -135,6 +156,7 @@ src/
     compliance/         S4 blocked terms baseline
     seed/               beauty-soiree, transcribed from the converted skill file
     ai/                 prompt construction, Anthropic calls
+    auth/               single-operator login. signed cookie, no user table.
     validation/         deterministic gate. the core. tested carefully.
                         pure functions, no db. context is loaded and passed in.
     sms/                adapter interface + Mobile Message implementation
