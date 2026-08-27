@@ -35,6 +35,7 @@ export const clinic: Clinic = {
   unattendedMinutes: 15,
   widgetTheme: null,
   widgetOrigins: CLINIC.widgetOrigins,
+  archivedAt: null,
   createdAt: now,
   updatedAt: now,
 };

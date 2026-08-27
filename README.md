@@ -38,6 +38,9 @@ curl -X POST http://localhost:3000/api/widget/beauty-soiree \
 
 The worker must be running for a draft to appear.
 
+Clinics are at http://localhost:3000/clinics. Adding one copies the Schedule 4
+blocked-terms baseline. Knowledge base editing is a separate step.
+
 ## Operator login
 
 One person, email and password, stored in the environment. There is no signup

@@ -196,7 +196,9 @@ export function QueueList({
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="font-medium text-neutral-900">{row.clinicName}</span>
           <Chip tone={row.closeType === "manual" ? "amber" : "neutral"}>
-            {row.closeType === "manual" ? "manual close" : "link only"}
+            {row.closeType === "manual"
+              ? "person confirms"
+              : "customer books"}
           </Chip>
           {row.killSwitch && <Chip tone="red">kill switch on</Chip>}
         </div>

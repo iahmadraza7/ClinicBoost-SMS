@@ -24,6 +24,7 @@ export async function OPTIONS(request: NextRequest, { params }: Params) {
   const { clinicSlug } = await params;
   const clinic = await repo.clinics.getClinicBySlug(clinicSlug);
   if (!clinic) return new NextResponse(null, { status: 404 });
+  if (clinic.archivedAt) return new NextResponse(null, { status: 404 });
 
   const origin = request.headers.get("origin");
   const headers = corsHeaders(clinic, origin);
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   const { clinicSlug } = await params;
 
   const clinic = await repo.clinics.getClinicBySlug(clinicSlug);
-  if (!clinic) {
+  if (!clinic || clinic.archivedAt) {
     return NextResponse.json({ error: "Unknown clinic" }, { status: 404 });
   }
 

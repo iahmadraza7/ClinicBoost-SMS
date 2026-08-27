@@ -86,6 +86,7 @@ export const clinics = pgTable("clinics", {
     .array()
     .notNull()
     .default(sql`'{}'::text[]`),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

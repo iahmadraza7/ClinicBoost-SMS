@@ -22,6 +22,13 @@
       "when": 1787745680228,
       "tag": "0002_kb_trigger_terms",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787861933074,
+      "tag": "0003_clinic_archived_at",
+      "breakpoints": true
     }
   ]
 }

@@ -44,10 +44,12 @@ export async function resolveClinicForNumber(
   }
 
   const fallback = await repo.clinics.getClinicBySlug(fallbackSlug);
-  if (!fallback) {
+  if (!fallback || fallback.archivedAt) {
     return {
       clinic: null,
-      reason: `SHARED_NUMBER_CLINIC_SLUG is "${fallbackSlug}" but no such clinic exists`,
+      reason: fallback?.archivedAt
+        ? `SHARED_NUMBER_CLINIC_SLUG is "${fallbackSlug}" but that clinic is archived`
+        : `SHARED_NUMBER_CLINIC_SLUG is "${fallbackSlug}" but no such clinic exists`,
     };
   }
 

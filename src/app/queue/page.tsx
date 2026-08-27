@@ -2,7 +2,7 @@ import { formatSydneyDateTime, formatSydneyTime } from "@/lib/time";
 import { requireOperator } from "@/server/auth";
 import { env } from "@/server/env";
 import * as repo from "@/server/repo";
-import { SignOut } from "../sign-out";
+import { DashboardHeader } from "../dashboard-header";
 import { QueueList, type QueueRow } from "./queue-list";
 
 export const dynamic = "force-dynamic";
@@ -41,23 +41,11 @@ export default async function QueuePage() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
-      <header className="mb-6 flex items-baseline justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">Approval queue</h1>
-          <p className="mt-1 text-sm text-neutral-600">
-            {rows.length === 0
-              ? "Nothing waiting."
-              : `${rows.length} waiting, newest first.`}
-          </p>
-        </div>
-        {/*
-          Whether an approval actually reaches the customer is the one thing an
-          operator must not have to guess. In console mode the reply is written
-          to the log and nothing is sent.
-        */}
-        <div className="flex flex-col items-end gap-1">
-          <SignOut email={operator.email} />
-          {env.SMS_PROVIDER === "mobile_message" ? (
+      <DashboardHeader
+        email={operator.email}
+        current="queue"
+        aside={
+          env.SMS_PROVIDER === "mobile_message" ? (
             <p className="text-xs text-neutral-500">
               Approving sends the reply.
             </p>
@@ -65,9 +53,16 @@ export default async function QueuePage() {
             <p className="text-xs font-medium text-amber-700">
               Test mode. Approving does not send anything.
             </p>
-          )}
-        </div>
-      </header>
+          )
+        }
+      >
+        <h1 className="mt-3 text-xl font-semibold">Approval queue</h1>
+        <p className="mt-1 text-sm text-neutral-600">
+          {rows.length === 0
+            ? "Nothing waiting."
+            : `${rows.length} waiting, newest first.`}
+        </p>
+      </DashboardHeader>
 
       <QueueList rows={rows} maxSegments={env.MAX_SEGMENTS_PER_DRAFT} />
     </main>

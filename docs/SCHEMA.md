@@ -23,6 +23,7 @@ notify_sms          boolean default false
 unattended_minutes  int default 15
 widget_theme        jsonb
 widget_origins      text[] not null default '{}'
+archived_at         timestamptz nullable
 created_at, updated_at
 ```
 
@@ -32,7 +33,13 @@ pages, so the allowed origins have to live somewhere. Empty means the endpoint
 accepts no cross-origin browser submissions for that clinic.
 
 `close_type` matters. A `manual` clinic must never be told the booking is
-confirmed. A `link_only` clinic must never be told someone will get back to them.
+confirmed. A `link_only` clinic must never be told someone will get back to
+them. The clinic form makes the operator pick that behaviour, not a label.
+
+`archived_at` is set when the operator archives a clinic. Archived clinics
+stay in the table (contacts, drafts and the audit log are kept) but the
+widget, the approval queue and inbound SMS routing skip them. Restore
+clears the timestamp.
 
 ## kb_entries
 
@@ -197,7 +204,7 @@ id, clinic_id, actor, action, entity_type, entity_id, before jsonb, after jsonb,
 ```
 
 Every approve, edit, reject, send, KB change, threshold change, kill switch
-toggle, clinic create.
+toggle, clinic create, clinic update, archive and restore.
 
 ## Validation failure codes
 
