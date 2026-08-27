@@ -144,13 +144,19 @@ setting `sms_number` and clearing that variable, not a rebuild.
 ## Deploy
 
 ```bash
-ssh reflex                      # 168.144.174.105
+ssh -i ~/.ssh/reflex_sms -o IdentitiesOnly=yes USER@168.144.174.105
 cd /opt/clinicboost
 git pull && docker compose up -d --build
 ```
 
+`USER` is the Linux account that has `reflex_sms` in `authorized_keys`. The
+README used to say `ssh reflex`; that alias does not exist until you add a
+`Host reflex` block. See the runbook if port 22 times out (fail2ban).
+
 The `app` container applies migrations on boot, before it serves traffic, so
-there is no separate migrate step on deploy.
+there is no separate migrate step on deploy. Seed is not in the image:
+copy `knowledge-source/converted/beauty-soiree.md` onto the server before
+`npm run db:seed`. Watch `df -h /` around every build.
 
 ## Tests
 
