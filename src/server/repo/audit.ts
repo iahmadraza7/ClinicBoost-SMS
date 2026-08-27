@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import { auditLog, type AuditLogRow } from "../db/schema";
 import { exec, type Executor } from "./executor";
@@ -35,13 +35,19 @@ export async function recordAudit(
 
 export async function listAudit(
   clinicId: string,
-  limit = 200,
+  options: { limit?: number; action?: string } = {},
   tx?: Executor,
 ): Promise<AuditLogRow[]> {
+  const limit = options.limit ?? 200;
+  const action = options.action?.trim();
+  const scope = action
+    ? and(eq(auditLog.clinicId, clinicId), eq(auditLog.action, action))
+    : eq(auditLog.clinicId, clinicId);
+
   return exec(tx)
     .select()
     .from(auditLog)
-    .where(eq(auditLog.clinicId, clinicId))
+    .where(scope)
     .orderBy(desc(auditLog.createdAt))
     .limit(limit);
 }

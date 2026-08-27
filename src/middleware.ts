@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
     if (pathname === "/login" || pathname.startsWith("/login/")) {
       const session = await currentSession(request);
       if (session) {
-        return NextResponse.redirect(new URL("/queue", request.url));
+        return NextResponse.redirect(new URL("/", request.url));
       }
     }
     return NextResponse.next();

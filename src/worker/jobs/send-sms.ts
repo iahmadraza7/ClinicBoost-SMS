@@ -108,6 +108,13 @@ export async function handleSendSms(job: SendSmsJob): Promise<void> {
       // trying, here and in every future draft for this contact.
       if (!operatorAlert) {
         await repo.contacts.setOptedOut(clinicId, contact.id, true);
+        await repo.audit.recordAudit(clinicId, {
+          actor: "worker",
+          action: "contact.opted_out",
+          entityType: "contact",
+          entityId: contact.id,
+          after: { opted_out: true, via: "provider" },
+        });
       }
       await reject(clinicId, messageId, error.message, {
         codes: ["CONTACT_OPTED_OUT"],

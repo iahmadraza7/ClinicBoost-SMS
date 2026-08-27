@@ -4,6 +4,21 @@ Written for the operator. Symptom, cause, what to do. Expand this as the
 product grows; the most likely real-world failure is a credential or account
 issue, not code.
 
+## Something has stopped working
+
+Open https://reply.clinicboost.com.au/ first. The health panel is six rows:
+
+| Row | Green means | If it is not green |
+|---|---|---|
+| Database | Postgres answered | The box or the database container is down |
+| Anthropic | The Claude key was accepted | The key is missing, rotated, or the model name is wrong |
+| Mobile Message | Credits remain | Test mode, no credits, or the API user/password is wrong |
+| Resend | notify.clinicboost.com.au is verified | The key is missing or the domain is not verified |
+| Worker | The every-minute sweep ran recently | `npm run worker:dev` locally, or the `worker` container on the server |
+| Last send | An SMS actually left | Amber until the first real send. Not a failure on its own |
+
+Fix the red or amber row before looking at code.
+
 ## I did not get an email when a draft hit the queue
 
 1. Auto-sent drafts do not email. If the reply went out on its own, that is
@@ -58,3 +73,14 @@ Nothing is written until Confirm import. If the preview looked wrong, do not
 confirm. Imported rows wait for review before the model can cite them. The
 audit log has one `kb.csv_imported` row with created / updated / skipped
 counts.
+
+## A queued draft still shows an old failure code
+
+Validator rules change during a build. Open the draft and use Re-validate
+(keyboard `v`). That runs today's checks and replaces the chips. It does not
+send. If every check passes, Approve to send.
+
+## Someone opted out and I cannot see who
+
+Open the clinic, Opt-outs. Each row is the number, the date, and how: they
+texted STOP, or the SMS provider refused the send.

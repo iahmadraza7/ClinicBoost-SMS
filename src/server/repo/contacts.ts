@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 
 import {
   contacts,
@@ -61,6 +61,24 @@ export async function upsertContact(
     })
     .returning();
   return row;
+}
+
+/** Customer opt-outs for this clinic. The operator sentinel is not a customer. */
+export async function listOptedOut(
+  clinicId: string,
+  tx?: Executor,
+): Promise<Contact[]> {
+  return exec(tx)
+    .select()
+    .from(contacts)
+    .where(
+      and(
+        eq(contacts.clinicId, clinicId),
+        eq(contacts.optedOut, true),
+        ne(contacts.mobile, "operator"),
+      ),
+    )
+    .orderBy(desc(contacts.optedOutAt));
 }
 
 export async function setOptedOut(

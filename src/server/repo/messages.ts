@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import {
   messages,
@@ -87,6 +87,26 @@ export async function getMessageByProviderId(
  * Records what the provider actually billed, which can differ from our own
  * count. Their number is the one that costs money, so it is the one we keep.
  */
+/** Newest outbound SMS that actually left, for the health panel. */
+export async function getLastSuccessfulSend(
+  clinicId: string,
+  tx?: Executor,
+): Promise<Message | null> {
+  const [row] = await exec(tx)
+    .select()
+    .from(messages)
+    .where(
+      and(
+        eq(messages.clinicId, clinicId),
+        eq(messages.direction, "outbound"),
+        inArray(messages.status, ["sent", "delivered"]),
+      ),
+    )
+    .orderBy(desc(messages.createdAt))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function markSent(
   clinicId: string,
   messageId: string,

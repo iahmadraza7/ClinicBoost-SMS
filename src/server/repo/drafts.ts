@@ -162,6 +162,30 @@ export async function countDraftsByState(
  * Records the operator's decision. The audit entry is written by the caller in
  * the same transaction so a decision can never be applied unlogged.
  */
+/**
+ * Replaces the stored validation result on a still-pending draft. State does
+ * not change: passing now means the operator can approve, not that we send.
+ */
+export async function updateValidationResult(
+  clinicId: string,
+  draftId: string,
+  validationResult: ValidationResult,
+  tx?: Executor,
+): Promise<Draft | null> {
+  const [row] = await exec(tx)
+    .update(drafts)
+    .set({ validationResult })
+    .where(
+      and(
+        eq(drafts.clinicId, clinicId),
+        eq(drafts.id, draftId),
+        eq(drafts.state, "pending"),
+      ),
+    )
+    .returning();
+  return row ?? null;
+}
+
 export async function decideDraft(
   clinicId: string,
   draftId: string,

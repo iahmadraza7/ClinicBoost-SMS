@@ -22,11 +22,11 @@ export function isPublicPath(pathname: string): boolean {
  * them onto another site with a valid session cookie sitting next to it.
  */
 export function safeReturnTo(from: string | null | undefined): string {
-  if (!from) return "/queue";
-  if (!from.startsWith("/")) return "/queue";
-  if (from.startsWith("//") || from.startsWith("/\\")) return "/queue";
-  if (from.includes("://")) return "/queue";
-  if (from.startsWith("/login")) return "/queue";
+  if (!from) return "/";
+  if (!from.startsWith("/")) return "/";
+  if (from.startsWith("//") || from.startsWith("/\\")) return "/";
+  if (from.includes("://")) return "/";
+  if (from.startsWith("/login")) return "/";
   return from;
 }
 

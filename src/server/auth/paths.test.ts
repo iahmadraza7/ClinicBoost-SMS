@@ -28,6 +28,7 @@ describe("isPublicPath", () => {
   it("protects the dashboard, the health ping, and everything else", () => {
     expect(isPublicPath("/")).toBe(false);
     expect(isPublicPath("/queue")).toBe(false);
+    expect(isPublicPath("/audit")).toBe(false);
     expect(isPublicPath("/api/health")).toBe(false);
   });
 });
@@ -40,13 +41,13 @@ describe("safeReturnTo", () => {
     );
   });
 
-  it("defaults to the queue when the value is missing or unsafe", () => {
-    expect(safeReturnTo(undefined)).toBe("/queue");
-    expect(safeReturnTo("")).toBe("/queue");
-    expect(safeReturnTo("https://evil.example/phish")).toBe("/queue");
-    expect(safeReturnTo("//evil.example")).toBe("/queue");
-    expect(safeReturnTo("/\\evil.example")).toBe("/queue");
-    expect(safeReturnTo("/login")).toBe("/queue");
-    expect(safeReturnTo("/login?from=/queue")).toBe("/queue");
+  it("defaults to home when the value is missing or unsafe", () => {
+    expect(safeReturnTo(undefined)).toBe("/");
+    expect(safeReturnTo("")).toBe("/");
+    expect(safeReturnTo("https://evil.example/phish")).toBe("/");
+    expect(safeReturnTo("//evil.example")).toBe("/");
+    expect(safeReturnTo("/\\evil.example")).toBe("/");
+    expect(safeReturnTo("/login")).toBe("/");
+    expect(safeReturnTo("/login?from=/queue")).toBe("/");
   });
 });

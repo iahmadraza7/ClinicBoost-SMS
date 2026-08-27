@@ -19,7 +19,7 @@ export default async function LoginPage({
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6 py-12">
       <h1 className="text-xl font-semibold">ClinicBoost SMS</h1>
       <p className="mt-1 text-sm text-neutral-600">
-        Sign in to the approval queue.
+        Sign in to the dashboard.
       </p>
 
       {configured ? (

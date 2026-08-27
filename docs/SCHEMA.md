@@ -151,7 +151,9 @@ created_at, updated_at
 unique (clinic_id, mobile)
 ```
 
-Opt-out is per contact per clinic, never global.
+Opt-out is per contact per clinic, never global. The dashboard lists opted-out
+contacts with `opted_out_at` and how, taken from the latest
+`contact.opted_out` audit row (`after.via`: `sms_inbound` or `provider`).
 
 ## conversations
 
@@ -218,6 +220,8 @@ id, clinic_id, period_month, segments_out, segments_in, ai_calls, updated_at
 unique (clinic_id, period_month)
 ```
 
+Read on the dashboard home, per clinic, for the current Sydney month.
+
 ## audit_log
 
 ```
@@ -225,8 +229,12 @@ id, clinic_id, actor, action, entity_type, entity_id, before jsonb, after jsonb,
 ```
 
 Every approve, edit, reject, send, KB change (including create, update,
-review, archive, restore and CSV import), threshold change, kill switch toggle,
-clinic create, clinic update, archive and restore.
+review, archive, restore and CSV import), re-validate, threshold change, kill
+switch toggle, clinic create, clinic update, archive and restore.
+
+The operator reads this at `/audit`, filtered by clinic and action.
+`draft.revalidated` stores the failure codes before and after.
+`contact.opted_out` records `after.via` as `sms_inbound` or `provider`.
 
 ## Validation failure codes
 

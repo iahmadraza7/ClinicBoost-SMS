@@ -6,16 +6,22 @@ import { z } from "zod";
 import { segmentCount } from "@/lib/segments";
 import { requireOperator } from "@/server/auth";
 import { env } from "@/server/env";
+import { loadReplyContext } from "@/server/reply-context";
 import * as repo from "@/server/repo";
 import { queueOutboundReply, startSending } from "@/server/sms/dispatch";
 import { checkSendable, describeBlocks } from "@/server/sms/guards";
+import { validateDraft } from "@/server/validation";
+import { modelInputFromDraft } from "@/server/validation/from-draft";
+import { toValidationContext } from "@/server/validation/from-reply-context";
 
 const decision = z.object({
   clinicId: z.string().uuid(),
   draftId: z.string().uuid(),
 });
 
-export type ActionResult = { ok: true } | { ok: false; error: string };
+export type ActionResult =
+  | { ok: true; passed?: boolean }
+  | { ok: false; error: string };
 
 /**
  * Approving is what authorises a send, so the decision and the outbound message
@@ -171,4 +177,71 @@ export async function editAndApproveDraft(
     "edited",
     parsed.data.body,
   );
+}
+
+/**
+ * Runs today's validator against a queued draft. Old items keep the codes
+ * they were created with until this is used. Passing does not send; it
+ * updates the chips so Approve is not working around a stale failure.
+ */
+export async function revalidateDraft(input: unknown): Promise<ActionResult> {
+  const operator = await requireOperator();
+  const parsed = decision.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid request" };
+
+  const { clinicId, draftId } = parsed.data;
+  const draft = await repo.drafts.getDraft(clinicId, draftId);
+  if (!draft) return { ok: false, error: "Draft not found" };
+  if (draft.state !== "pending") {
+    return { ok: false, error: `Already ${draft.state}` };
+  }
+
+  const ctx = await loadReplyContext(clinicId, {
+    conversationId: draft.conversationId,
+    inboundMessageId: draft.inboundMessageId,
+  });
+  if (!ctx) {
+    return { ok: false, error: "Could not load the enquiry for this draft" };
+  }
+
+  const validation = validateDraft(
+    modelInputFromDraft(draft),
+    toValidationContext(ctx),
+  );
+
+  const result = await repo.withTransaction(async (tx) => {
+    const after = await repo.drafts.updateValidationResult(
+      clinicId,
+      draftId,
+      { passed: validation.passed, failures: validation.failures },
+      tx,
+    );
+    if (!after) {
+      return { ok: false as const, error: "Draft was decided by someone else" };
+    }
+
+    await repo.audit.recordAudit(
+      clinicId,
+      {
+        actor: operator.email,
+        action: "draft.revalidated",
+        entityType: "draft",
+        entityId: draftId,
+        before: {
+          passed: draft.validationResult?.passed ?? null,
+          failures: draft.validationResult?.failures.map((f) => f.code) ?? [],
+        },
+        after: {
+          passed: validation.passed,
+          failures: validation.failures.map((f) => f.code),
+        },
+      },
+      tx,
+    );
+
+    return { ok: true as const, passed: validation.passed };
+  });
+
+  revalidatePath("/queue");
+  return result;
 }

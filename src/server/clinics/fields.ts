@@ -62,6 +62,7 @@ const RESERVED_SLUGS = new Set([
   "clinics",
   "api",
   "health",
+  "audit",
 ]);
 
 export const clinicFieldsSchema = z.object({

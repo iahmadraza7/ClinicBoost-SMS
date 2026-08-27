@@ -38,6 +38,11 @@ curl -X POST http://localhost:3000/api/widget/beauty-soiree \
 
 The worker must be running for a draft to appear.
 
+After login, http://localhost:3000/ is the health panel (Claude key, SMS
+credits, Resend domain, worker, last send, database) and this month's usage.
+The audit log is `/audit`. Opt-outs are on each clinic. A queued draft has
+Re-validate when failure chips look stale.
+
 Clinics are at http://localhost:3000/clinics. Adding one copies the Schedule 4
 blocked-terms baseline. The knowledge base for a clinic is at
 `/clinics/[slug]/knowledge`. New and edited entries wait for review before
@@ -61,7 +66,7 @@ npm run hash-password
 Put the results in `.env` and `.env.local` as `AUTH_SECRET` and
 `OPERATOR_PASSWORD_HASH`, plus `OPERATOR_EMAIL`. Restart the app.
 
-`/queue` (and everything else) redirects to `/login` until you sign in. The
+`/` (and everything else) redirects to `/login` until you sign in. The
 widget and the Mobile Message webhooks stay public on purpose: a lead submitting
 a form, and a reply arriving from a phone, cannot wait for Ted to be at his
 desk.
@@ -185,6 +190,7 @@ src/
     seed/               beauty-soiree, transcribed from the converted skill file
     ai/                 prompt construction, Anthropic calls
     auth/               single-operator login. signed cookie, no user table.
+    health/             dashboard checks: keys, credits, worker, last send
     validation/         deterministic gate. the core. tested carefully.
                         pure functions, no db. context is loaded and passed in.
     sms/                adapter interface + Mobile Message implementation

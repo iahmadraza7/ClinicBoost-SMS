@@ -9,7 +9,7 @@ export function DashboardHeader({
   children,
 }: {
   email: string;
-  current: "queue" | "clinics";
+  current: "home" | "queue" | "clinics" | "audit";
   aside?: React.ReactNode;
   children?: React.ReactNode;
 }) {
@@ -17,11 +17,17 @@ export function DashboardHeader({
     <header className="mb-6 flex items-start justify-between gap-4">
       <div>
         <nav className="flex gap-4 text-sm">
+          <NavLink href="/" active={current === "home"}>
+            Home
+          </NavLink>
           <NavLink href="/queue" active={current === "queue"}>
             Queue
           </NavLink>
           <NavLink href="/clinics" active={current === "clinics"}>
             Clinics
+          </NavLink>
+          <NavLink href="/audit" active={current === "audit"}>
+            Audit
           </NavLink>
         </nav>
         {children}

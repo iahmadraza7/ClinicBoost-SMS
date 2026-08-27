@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { formatAuMobile } from "@/lib/mobile";
 import { countSegments } from "@/lib/segments";
 import type { CloseType, ValidationResult } from "@/server/db/schema";
-import { approveDraft, editAndApproveDraft, rejectDraft } from "./actions";
+import { approveDraft, editAndApproveDraft, rejectDraft, revalidateDraft } from "./actions";
 
 export type QueueRow = {
   draftId: string;
@@ -31,6 +31,7 @@ const SHORTCUTS = [
   ["a", "approve"],
   ["e", "edit"],
   ["r", "reject"],
+  ["v", "re-validate"],
   ["Ctrl+Enter", "save edit"],
   ["Esc", "cancel"],
 ];
@@ -46,6 +47,7 @@ export function QueueList({
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -62,12 +64,34 @@ export function QueueList({
     if (editing) textareaRef.current?.focus();
   }, [editing]);
 
+  useEffect(() => {
+    setNote(null);
+    setMessage(null);
+  }, [row?.draftId]);
+
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
     setMessage(null);
+    setNote(null);
     startTransition(async () => {
       const result = await action();
       if (!result.ok) setMessage(result.error ?? "Something went wrong");
       else setEditing(false);
+    });
+  }
+
+  function revalidate() {
+    if (!row) return;
+    setMessage(null);
+    setNote(null);
+    startTransition(async () => {
+      const result = await revalidateDraft({
+        clinicId: row.clinicId,
+        draftId: row.draftId,
+      });
+      if (!result.ok) setMessage(result.error ?? "Something went wrong");
+      else if (result.passed) {
+        setNote("All checks pass now. Approve to send.");
+      }
     });
   }
 
@@ -124,6 +148,10 @@ export function QueueList({
             setEditValue(row.draftBody);
             setEditing(true);
           }
+          break;
+        case "v":
+          event.preventDefault();
+          revalidate();
           break;
         default:
           break;
@@ -242,6 +270,12 @@ export function QueueList({
           )}
         </div>
 
+        {note && (
+          <p className="mt-3 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
+            {note}
+          </p>
+        )}
+
         {message && (
           <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
             {message}
@@ -263,6 +297,9 @@ export function QueueList({
           </Action>
           <Action onClick={reject} disabled={pending || editing} tone="danger">
             Reject <Key>r</Key>
+          </Action>
+          <Action onClick={revalidate} disabled={pending || editing}>
+            Re-validate <Key>v</Key>
           </Action>
         </div>
 

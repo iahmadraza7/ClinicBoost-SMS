@@ -27,3 +27,26 @@ export function formatSydneyDateTime(date: Date): string {
     hour12: true,
   }).format(date);
 }
+
+export function formatSydneyDate(date: Date): string {
+  return new Intl.DateTimeFormat("en-AU", {
+    timeZone: SYDNEY,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+/** `YYYY-MM` as "August 2026". The 1st of the month in UTC keeps the month stable. */
+export function formatPeriodMonth(periodMonth: string): string {
+  const [year, month] = periodMonth.split("-");
+  const date = new Date(`${year}-${month}-01T00:00:00Z`);
+  return new Intl.DateTimeFormat("en-AU", {
+    timeZone: "UTC",
+    month: "long",
+    year: "numeric",
+  })
+    .format(date)
+    .replace(/\u00a0/g, " ")
+    .trim();
+}
