@@ -67,13 +67,23 @@ created_at, updated_at
 unique (clinic_id, entry_key)
 ```
 
-`answer_mode` is the important column:
+`answer_mode` is the important column. The editor makes the operator pick the
+behaviour, not a label:
 
-- `answerable` — normal, can be cited and sent
-- `blocked` — explicitly do-not-answer. Model must deflect using
-  `block_deflect`, never attempt. Always queues.
-- `missing` — known gap. Flag as unanswerable, notify operator, store their
-  answer back as an `answerable` entry pending review.
+- `answerable` — can be cited and sent
+- `blocked` — never attempt, always queue, deflect with `block_deflect`
+- `missing` — known gap. Flag as unanswerable, store the operator's later
+  answer.
+
+Operator create and edit always land as `pending_review`. The model only
+reads `active` entries (`listKbEntries(..., { activeOnly: true })`). Review
+is a separate action that sets `status = active` and records `reviewed_by`
+and `reviewed_at` on its own audit row. A clinic with zero live `blocked` or
+`missing` entries is warned in the editor; that content is not generated.
+
+Blocked terms are checked against the entry body (and title / deflect) on
+save, so Schedule 4 names in the client's own offer copy cannot be cited as
+a source.
 
 `trigger_terms` was added during the validator slice (migration `0002`). A
 `blocked` entry is only enforceable if the validator can tell that the topic has
@@ -203,8 +213,9 @@ unique (clinic_id, period_month)
 id, clinic_id, actor, action, entity_type, entity_id, before jsonb, after jsonb, created_at
 ```
 
-Every approve, edit, reject, send, KB change, threshold change, kill switch
-toggle, clinic create, clinic update, archive and restore.
+Every approve, edit, reject, send, KB change (including create, update,
+review, archive and restore), threshold change, kill switch toggle, clinic
+create, clinic update, archive and restore.
 
 ## Validation failure codes
 

@@ -5,6 +5,8 @@ import { requireOperator } from "@/server/auth";
 import { CLOSE_TYPE_CHOICES } from "@/server/clinics/fields";
 import * as repo from "@/server/repo";
 
+import { SmsStatus } from "./sms-status";
+
 export const dynamic = "force-dynamic";
 
 export default async function ClinicsPage() {
@@ -95,9 +97,12 @@ function ClinicTable({
                   {clinic.location}
                 </p>
               </div>
-              <p className="text-sm text-neutral-600 sm:text-right">
-                {close?.title ?? clinic.closeType}
-              </p>
+              <div className="sm:text-right">
+                <SmsStatus smsNumber={clinic.smsNumber} size="xs" />
+                <p className="mt-1 text-sm text-neutral-600">
+                  {close?.title ?? clinic.closeType}
+                </p>
+              </div>
             </Link>
           </li>
         );

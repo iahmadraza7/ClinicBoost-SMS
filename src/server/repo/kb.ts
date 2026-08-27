@@ -28,6 +28,19 @@ export async function listKbEntries(
     .orderBy(asc(kbEntries.category), asc(kbEntries.entryKey));
 }
 
+export async function getKbEntry(
+  clinicId: string,
+  entryId: string,
+  tx?: Executor,
+): Promise<KbEntry | null> {
+  const [row] = await exec(tx)
+    .select()
+    .from(kbEntries)
+    .where(and(eq(kbEntries.clinicId, clinicId), eq(kbEntries.id, entryId)))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function getKbEntryByKey(
   clinicId: string,
   entryKey: string,

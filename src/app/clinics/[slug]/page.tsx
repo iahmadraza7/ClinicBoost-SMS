@@ -7,6 +7,8 @@ import * as repo from "@/server/repo";
 
 import { ArchiveControls } from "../archive-controls";
 import { ClinicForm } from "../clinic-form";
+import { ClinicSectionNav } from "../clinic-section-nav";
+import { SmsStatus } from "../sms-status";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,9 @@ export default async function ClinicDetailPage({
           <span className="text-neutral-900">{clinic.slug}</span>
         </p>
         <h1 className="mt-2 text-xl font-semibold">{clinic.name}</h1>
+        <div className="mt-2">
+          <SmsStatus smsNumber={clinic.smsNumber} />
+        </div>
         {clinic.archivedAt && (
           <p className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
             Archived. The widget and the approval queue ignore this clinic.
@@ -38,6 +43,8 @@ export default async function ClinicDetailPage({
           </p>
         )}
       </DashboardHeader>
+
+      <ClinicSectionNav slug={clinic.slug} current="settings" />
 
       {clinic.archivedAt ? (
         <ArchiveControls slug={clinic.slug} archived />

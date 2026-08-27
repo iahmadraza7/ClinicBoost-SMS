@@ -1,7 +1,28 @@
 import { z } from "zod";
 
-import { normaliseAuMobile } from "@/lib/mobile";
+import { formatAuMobile, normaliseAuMobile } from "@/lib/mobile";
 import type { BookingPlatform, CloseType } from "../db/schema";
+
+/**
+ * A missing dedicated number is a clinic that cannot send or receive. Say so
+ * on the list and the detail page, the same way the queue says "test mode"
+ * rather than leaving a blank.
+ */
+export const SMS_NOT_CONNECTED =
+  "Not connected. No dedicated number. Cannot send or receive.";
+
+export function clinicSmsLabel(smsNumber: string | null): {
+  connected: boolean;
+  label: string;
+} {
+  if (!smsNumber) {
+    return { connected: false, label: SMS_NOT_CONNECTED };
+  }
+  return {
+    connected: true,
+    label: `Sending and receiving on ${formatAuMobile(smsNumber)}`,
+  };
+}
 
 /**
  * The operator is picking how bookings get confirmed, not a schema label.

@@ -30,3 +30,15 @@ issue, not code.
 That is a bug. Stop sending (kill switch), and do not approve further drafts
 until it is fixed. Notifications are only allowed to carry the clinic name
 and a dashboard link.
+
+## A fact I just added is not being used in replies
+
+New and edited knowledge base entries wait for review. Open the clinic,
+Knowledge base, and use Review and make active. Until then the model cannot
+see the entry, on purpose: a mistake must not poison the knowledge base.
+
+## A clinic has no do-not-answer coverage
+
+The knowledge page warns when there are no blocked or missing entries.
+Nine of the eleven clinics start that way. Write those entries yourself;
+they are not generated. Beauty Soiree is the one that already has them.

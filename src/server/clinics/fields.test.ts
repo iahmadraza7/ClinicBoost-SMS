@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   CLOSE_TYPE_CHOICES,
+  SMS_NOT_CONNECTED,
   clinicSlugSchema,
+  clinicSmsLabel,
   createClinicSchema,
   parseWidgetOrigins,
 } from "./fields";
@@ -28,6 +30,23 @@ describe("CLOSE_TYPE_CHOICES", () => {
     expect(CLOSE_TYPE_CHOICES.map((c) => c.value).sort()).toEqual(
       ["link_only", "manual"].sort(),
     );
+  });
+});
+
+describe("clinicSmsLabel", () => {
+  it("states the disconnected facts instead of leaving a blank", () => {
+    const { connected, label } = clinicSmsLabel(null);
+    expect(connected).toBe(false);
+    expect(label).toBe(SMS_NOT_CONNECTED);
+    expect(label.toLowerCase()).toContain("not connected");
+    expect(label.toLowerCase()).toContain("no dedicated number");
+    expect(label.toLowerCase()).toContain("cannot send or receive");
+  });
+
+  it("shows the national number when one is connected", () => {
+    const { connected, label } = clinicSmsLabel("+61405111222");
+    expect(connected).toBe(true);
+    expect(label).toContain("0405 111 222");
   });
 });
 
