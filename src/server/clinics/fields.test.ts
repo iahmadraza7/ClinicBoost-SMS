@@ -6,8 +6,12 @@ import {
   clinicSlugSchema,
   clinicSmsLabel,
   createClinicSchema,
+  parseVoice,
   parseWidgetOrigins,
+  pendingVoiceAfterSave,
+  voiceBlockedTermError,
 } from "./fields";
+import { S4_BASELINE_TERMS } from "../compliance/s4-baseline";
 
 describe("CLOSE_TYPE_CHOICES", () => {
   it("spells out the consequence of each choice, not just a label", () => {
@@ -122,5 +126,48 @@ describe("createClinicSchema", () => {
     expect(parsed.smsNumber).toBe("+61405111222");
     expect(parsed.hours).toBeNull();
     expect(parsed.phone).toBeNull();
+  });
+});
+
+describe("parseVoice", () => {
+  it("treats a blank field as the default tone", () => {
+    expect(parseVoice("")).toEqual({ voice: null });
+    expect(parseVoice("   ")).toEqual({ voice: null });
+  });
+
+  it("keeps a trimmed voice string", () => {
+    expect(parseVoice("  Warmer greetings.  ")).toEqual({
+      voice: "Warmer greetings.",
+    });
+  });
+});
+
+describe("pendingVoiceAfterSave", () => {
+  it("clears pending when the submitted text matches what is already live", () => {
+    expect(pendingVoiceAfterSave("Warmer greetings.", "Warmer greetings.")).toBe(
+      null,
+    );
+    expect(pendingVoiceAfterSave(null, null)).toBe(null);
+  });
+
+  it("stores an empty pending string when reverting to the default tone", () => {
+    expect(pendingVoiceAfterSave(null, "Warmer greetings.")).toBe("");
+  });
+});
+
+describe("voiceBlockedTermError", () => {
+  it("refuses a Schedule 4 term in the voice field", () => {
+    const error = voiceBlockedTermError(
+      "Sound confident. Mention Botox if they ask.",
+      S4_BASELINE_TERMS,
+    );
+    expect(error).toMatch(/voice field contains blocked terms/i);
+    expect(error).toMatch(/botox/i);
+  });
+
+  it("lets a tone-only voice through", () => {
+    expect(
+      voiceBlockedTermError("Warmer greetings. Keep it short.", S4_BASELINE_TERMS),
+    ).toBeNull();
   });
 });

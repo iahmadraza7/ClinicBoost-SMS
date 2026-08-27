@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { formatAuMobile, normaliseAuMobile } from "@/lib/mobile";
 import type { BookingPlatform, CloseType } from "../db/schema";
+import { findBlockedTerms } from "../validation/blocked-terms";
 
 /**
  * A missing dedicated number is a clinic that cannot send or receive. Say so
@@ -210,6 +211,51 @@ export function parseCheckbox(value: FormDataEntryValue | null): boolean {
   return value === "true" || value === "on";
 }
 
+/**
+ * Voice controls register, warmth, formality, greeting style, length.
+ * It cannot grant permission to state anything. It cannot relax any
+ * validation rule. It cannot introduce facts, prices, claims or
+ * suitability language.
+ */
+export const VOICE_HELP =
+  "Voice controls register, warmth, formality, greeting style, length. It cannot grant permission to state anything. It cannot relax any validation rule. It cannot introduce facts, prices, claims or suitability language.";
+
+export const VOICE_MAX_LENGTH = 2000;
+
+export function parseVoice(raw: string): { voice: string | null } | { error: string } {
+  const trimmed = raw.trim();
+  if (trimmed.length > VOICE_MAX_LENGTH) {
+    return { error: `Voice is at most ${VOICE_MAX_LENGTH} characters` };
+  }
+  return { voice: trimmed === "" ? null : trimmed };
+}
+
+/**
+ * Empty string in voice_pending means the operator is reverting to the
+ * default tone. Null means nothing is waiting for review.
+ */
+export function pendingVoiceAfterSave(
+  submitted: string | null,
+  live: string | null,
+): string | null {
+  if ((submitted ?? "") === (live ?? "")) return null;
+  return submitted ?? "";
+}
+
+export function liveVoiceFromPending(pending: string): string | null {
+  return pending === "" ? null : pending;
+}
+
+export function voiceBlockedTermError(
+  text: string,
+  terms: { term: string; reason: string }[],
+): string | null {
+  const hits = findBlockedTerms(text, terms);
+  if (hits.length === 0) return null;
+  const listed = hits.map((h) => `"${h.term}"`).join(", ");
+  return `The voice field contains blocked terms: ${listed}. Schedule 4 names cannot go in the voice field.`;
+}
+
 export function clinicFieldsFromForm(form: FormData): {
   fields?: ClinicFields;
   error?: string;
@@ -261,6 +307,8 @@ export function clinicAuditShape(clinic: {
   notifySms: boolean;
   unattendedMinutes: number;
   widgetOrigins: string[];
+  voice: string | null;
+  voicePending: string | null;
   archivedAt: Date | null;
   widgetTheme: { accent?: string; heading?: string; buttonLabel?: string } | null;
 }) {
@@ -281,6 +329,8 @@ export function clinicAuditShape(clinic: {
     unattended_minutes: clinic.unattendedMinutes,
     widget_origins: clinic.widgetOrigins,
     widget_theme: clinic.widgetTheme,
+    voice: clinic.voice,
+    voice_pending: clinic.voicePending,
     archived_at: clinic.archivedAt?.toISOString() ?? null,
   };
 }

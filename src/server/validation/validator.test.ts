@@ -310,6 +310,23 @@ describe("CONTRA_UNVERIFIED", () => {
   it("leaves a draft with no suitability language alone", () => {
     expect(codes(cleanDraft())).not.toContain("CONTRA_UNVERIFIED");
   });
+
+  it("still fails a HIFU-for-everyone claim the knowledge base does not support", () => {
+    // Voice may ask the model to "be confident about results and reassure
+    // customers HIFU works for everyone". validateDraft does not take voice.
+    // The gate is the knowledge base, not the STYLE section.
+    const draft = cleanDraft({
+      draft: "Hey Sarah. HIFU is suitable for everyone.",
+      claims: [
+        {
+          text: "HIFU is suitable for everyone.",
+          source_id: "beauty-soiree.hifu-499.device",
+        },
+      ],
+    });
+
+    expect(codes(draft)).toContain("CONTRA_UNVERIFIED");
+  });
 });
 
 describe("URL_UNVERIFIED", () => {

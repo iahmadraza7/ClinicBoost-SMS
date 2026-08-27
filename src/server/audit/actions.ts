@@ -3,6 +3,7 @@ export const AUDIT_ACTIONS = [
   "clinic.updated",
   "clinic.archived",
   "clinic.restored",
+  "clinic.voice_reviewed",
   "clinic.seeded",
   "kb.created",
   "kb.updated",

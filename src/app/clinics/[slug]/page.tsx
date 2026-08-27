@@ -10,6 +10,7 @@ import { ArchiveControls } from "../archive-controls";
 import { ClinicForm } from "../clinic-form";
 import { ClinicSectionNav } from "../clinic-section-nav";
 import { SmsStatus } from "../sms-status";
+import { VoiceReviewControls } from "../voice-controls";
 import { WidgetPreview } from "../widget-preview";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,11 @@ export default async function ClinicDetailPage({
         <ArchiveControls slug={clinic.slug} archived />
       ) : (
         <>
+          {clinic.voicePending !== null && (
+            <div className="mb-6">
+              <VoiceReviewControls slug={clinic.slug} />
+            </div>
+          )}
           <ClinicForm
             mode="edit"
             clinic={{
@@ -71,6 +77,8 @@ export default async function ClinicDetailPage({
               unattendedMinutes: clinic.unattendedMinutes,
               widgetOrigins: clinic.widgetOrigins,
               widgetTheme: clinic.widgetTheme,
+              voice: clinic.voice,
+              voicePending: clinic.voicePending,
             }}
           />
           <div className="mt-10 border-t border-neutral-200 pt-6">

@@ -23,6 +23,10 @@ notify_sms          boolean default false
 unattended_minutes  int default 15
 widget_theme        jsonb
 widget_origins      text[] not null default '{}'
+voice               text nullable        -- live STYLE text; null = default tone
+voice_pending       text nullable        -- waiting for review; '' = revert to default
+voice_reviewed_by   text nullable
+voice_reviewed_at   timestamptz nullable
 archived_at         timestamptz nullable
 created_at, updated_at
 ```
@@ -44,6 +48,14 @@ them. The clinic form makes the operator pick that behaviour, not a label.
 stay in the table (contacts, drafts and the audit log are kept) but the
 widget, the approval queue and inbound SMS routing skip them. Restore
 clears the timestamp.
+
+`voice` is the live STYLE text injected into the system prompt, before the
+SMS formatting rules and never after the grounding rules. It controls
+register, warmth, formality, greeting style and length. It cannot grant
+permission to state anything, relax validation, or introduce facts. Edits
+land in `voice_pending` until review, the same as a knowledge base entry.
+Null live voice means the default Australian SMS tone. Schedule 4 terms
+are refused on save.
 
 ## kb_entries
 

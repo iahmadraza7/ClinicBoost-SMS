@@ -52,6 +52,11 @@ New and edited knowledge base entries wait for review. Open the clinic,
 Knowledge base, and use Review and make active. Until then the model cannot
 see the entry, on purpose: a mistake must not poison the knowledge base.
 
+A clinic voice change waits the same way. Open the clinic settings page.
+Until you review it, drafts still use the previous voice, or the default
+Australian SMS tone if none was set. Voice cannot make a draft auto-send
+a claim the knowledge base does not support.
+
 ## A clinic has no do-not-answer coverage
 
 The knowledge page warns when there are no blocked or missing entries.

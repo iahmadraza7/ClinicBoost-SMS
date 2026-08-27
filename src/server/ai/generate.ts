@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 import { env } from "../env";
 import type { ReplyContext } from "../reply-context";
-import { INSTRUCTIONS } from "./instructions";
+import { buildSystemPrompt } from "./instructions";
 import { extractJsonObject } from "./json";
 import { buildClinicPrompt, buildMessages } from "./prompt";
 
@@ -57,7 +57,8 @@ export async function generateDraft(
       max_tokens: MAX_TOKENS,
       temperature: 0.2,
       system: [
-        { type: "text", text: INSTRUCTIONS },
+        // Live voice only. Pending voice waits for review, same as a KB edit.
+        { type: "text", text: buildSystemPrompt(ctx.clinic.voice) },
         {
           type: "text",
           text: buildClinicPrompt(ctx),

@@ -86,6 +86,12 @@ export const clinics = pgTable("clinics", {
     .array()
     .notNull()
     .default(sql`'{}'::text[]`),
+  // Live voice, used in the STYLE section of the system prompt. Null means
+  // the default Australian SMS tone. Edits land in voicePending until review.
+  voice: text("voice"),
+  voicePending: text("voice_pending"),
+  voiceReviewedBy: text("voice_reviewed_by"),
+  voiceReviewedAt: timestamp("voice_reviewed_at", { withTimezone: true }),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),

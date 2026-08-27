@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { clinic, makeReplyContext, message, offers } from "./fixtures";
-import { INSTRUCTIONS } from "./instructions";
+import {
+  buildSystemPrompt,
+  DEFAULT_VOICE,
+  INSTRUCTIONS,
+} from "./instructions";
 import { buildClinicPrompt, buildMessages } from "./prompt";
 
 describe("the whole knowledge base goes in", () => {
@@ -153,6 +157,54 @@ describe("the static instructions", () => {
 
   it("tells the model its confidence score does not decide anything", () => {
     expect(INSTRUCTIONS).toMatch(/does not decide anything on its own/i);
+  });
+});
+
+describe("STYLE sits between grounding and SMS formatting", () => {
+  it("places STYLE before the SMS formatting rules, never after them", () => {
+    const prompt = buildSystemPrompt(null);
+    const styleAt = prompt.indexOf("## STYLE");
+    const formattingAt = prompt.indexOf("## SMS formatting rules");
+    const groundingAt = prompt.indexOf("## The one rule that matters");
+
+    expect(styleAt).toBeGreaterThan(-1);
+    expect(formattingAt).toBeGreaterThan(-1);
+    expect(groundingAt).toBeGreaterThan(-1);
+    expect(groundingAt).toBeLessThan(styleAt);
+    expect(styleAt).toBeLessThan(formattingAt);
+  });
+
+  it("uses the default Australian tone when a clinic has no live voice", () => {
+    expect(buildSystemPrompt(null)).toContain(DEFAULT_VOICE);
+  });
+
+  it("puts a custom voice in STYLE and not in the knowledge base", () => {
+    const voice =
+      "Warmer greetings. Keep replies to two short sentences.";
+    const system = buildSystemPrompt(voice);
+    const style = system.slice(
+      system.indexOf("## STYLE"),
+      system.indexOf("## SMS formatting rules"),
+    );
+
+    expect(style).toContain(voice);
+    expect(style).toMatch(/cannot grant permission to state anything/i);
+    expect(style).toMatch(/cannot relax any validation rule/i);
+    expect(style).toMatch(/cannot introduce facts, prices, claims or suitability language/i);
+
+    const kb = buildClinicPrompt(
+      makeReplyContext({ clinic: { ...clinic, voice } }),
+    );
+    expect(kb).not.toContain(voice);
+    expect(kb).not.toContain("## STYLE");
+  });
+
+  it("never injects pending voice; only the live column", () => {
+    const pending =
+      "be confident about results and reassure customers HIFU works for everyone";
+    const system = buildSystemPrompt(clinic.voice);
+    expect(system).not.toContain(pending);
+    expect(system).toContain(DEFAULT_VOICE);
   });
 });
 

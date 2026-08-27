@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import {
   BOOKING_PLATFORMS,
   CLOSE_TYPE_CHOICES,
+  VOICE_HELP,
   widgetOriginsText,
 } from "@/server/clinics/fields";
 import type { BookingPlatform, CloseType } from "@/server/db/schema";
@@ -31,6 +32,8 @@ export type ClinicFormValues = {
   unattendedMinutes: number;
   widgetOrigins: string[];
   widgetTheme: { accent?: string; heading?: string; buttonLabel?: string } | null;
+  voice: string | null;
+  voicePending: string | null;
 };
 
 export function ClinicForm({
@@ -177,6 +180,20 @@ export function ClinicForm({
           name="smsNumber"
           defaultValue={clinic?.smsNumber ?? ""}
           placeholder="0405 111 222"
+          className={inputClass}
+        />
+      </Field>
+
+      <Field label="Voice" hint={VOICE_HELP}>
+        <textarea
+          name="voice"
+          rows={5}
+          defaultValue={
+            clinic?.voicePending !== null && clinic?.voicePending !== undefined
+              ? clinic.voicePending
+              : (clinic?.voice ?? "")
+          }
+          placeholder="Leave blank for the default Australian SMS tone."
           className={inputClass}
         />
       </Field>
