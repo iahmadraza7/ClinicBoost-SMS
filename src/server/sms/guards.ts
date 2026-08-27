@@ -26,8 +26,15 @@ export function checkSendable(args: {
   contactOptedOut: boolean;
   blockedTerms: { term: string; reason: string }[];
   maxSegments: number;
+  /**
+   * Operator alerts still go through this guard (usage, blocked terms, the
+   * global kill switch) but they are not a message to a customer, so a clinic
+   * kill switch or that clinic's opt-out list must not swallow them.
+   */
+  kind?: "customer" | "operator_alert";
 }): SendBlock[] {
   const blocks: SendBlock[] = [];
+  const operatorAlert = args.kind === "operator_alert";
 
   for (const hit of findBlockedTerms(args.body, args.blockedTerms)) {
     blocks.push({
@@ -36,17 +43,17 @@ export function checkSendable(args: {
     });
   }
 
-  if (args.contactOptedOut) {
+  if (args.contactOptedOut && !operatorAlert) {
     blocks.push({
       code: "CONTACT_OPTED_OUT",
       detail: "this contact has opted out of messages from this clinic",
     });
   }
 
-  if (args.killSwitch || args.globalKillSwitch) {
+  if (args.globalKillSwitch || (args.killSwitch && !operatorAlert)) {
     blocks.push({
       code: "KILL_SWITCH",
-      detail: args.killSwitch
+      detail: args.killSwitch && !operatorAlert
         ? `the kill switch is on for ${args.clinicSlug}`
         : "the global kill switch is on",
     });

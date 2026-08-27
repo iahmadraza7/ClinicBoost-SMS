@@ -1,5 +1,8 @@
 import { generateDraft } from "../../server/ai";
-import type { DraftReplyJob } from "../../server/queue/boss";
+import {
+  enqueueNotifyEmail,
+  type DraftReplyJob,
+} from "../../server/queue/boss";
 import { loadReplyContext } from "../../server/reply-context";
 import * as repo from "../../server/repo";
 import { queueOutboundReply, startSending } from "../../server/sms/dispatch";
@@ -54,7 +57,7 @@ export async function handleDraftReply(job: DraftReplyJob): Promise<void> {
   const autoSend = validation.passed;
   const body = output?.draft ?? generation.raw.slice(0, RAW_BODY_LIMIT);
 
-  const outboundMessageId = await repo.withTransaction(async (tx) => {
+  const result = await repo.withTransaction(async (tx) => {
     const draft = await repo.drafts.createDraft(
       clinicId,
       {
@@ -99,11 +102,21 @@ export async function handleDraftReply(job: DraftReplyJob): Promise<void> {
       tx,
     );
 
-    return message?.id ?? null;
+    return {
+      outboundMessageId: message?.id ?? null,
+      queuedDraftId: autoSend ? null : draft.id,
+    };
   });
 
-  if (outboundMessageId) {
-    await startSending(clinicId, outboundMessageId, "worker");
+  if (result.outboundMessageId) {
+    await startSending(clinicId, result.outboundMessageId, "worker");
+  }
+
+  // Auto-sent drafts never alert. A failure here is logged, not thrown: the
+  // draft already exists, so a retry of this job would skip, and the sweep
+  // covers a missed enqueue.
+  if (result.queuedDraftId) {
+    await enqueueQueueEmail(clinicId, result.queuedDraftId);
   }
 }
 
@@ -150,7 +163,20 @@ export async function handleDraftReplyFailed(
     after: { inbound_message_id: inboundMessageId },
   });
 
+  await enqueueQueueEmail(clinicId, draft.id);
+
   console.error(
     `draft-reply: gave up drafting for clinic ${clinicId}, message ${inboundMessageId}. Queued for manual reply.`,
   );
+}
+
+async function enqueueQueueEmail(
+  clinicId: string,
+  draftId: string,
+): Promise<void> {
+  try {
+    await enqueueNotifyEmail({ clinicId, draftId });
+  } catch (error) {
+    console.error(`failed to enqueue notify-email for ${draftId}:`, error);
+  }
 }

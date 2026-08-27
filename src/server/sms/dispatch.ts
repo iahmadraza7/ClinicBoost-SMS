@@ -1,6 +1,6 @@
 import { segmentCount } from "@/lib/segments";
 import type { Message } from "../db/schema";
-import { enqueueSendSms } from "../queue/boss";
+import { enqueueSendSms, type SendSmsKind } from "../queue/boss";
 import * as repo from "../repo";
 import type { Executor } from "../repo/executor";
 
@@ -47,9 +47,10 @@ export async function startSending(
   clinicId: string,
   messageId: string,
   actor: string,
+  kind: SendSmsKind = "customer",
 ): Promise<boolean> {
   try {
-    await enqueueSendSms({ clinicId, messageId });
+    await enqueueSendSms({ clinicId, messageId, kind });
     return true;
   } catch (error) {
     console.error(`failed to enqueue send-sms for ${messageId}:`, error);

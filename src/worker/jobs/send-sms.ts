@@ -14,6 +14,8 @@ import { RecipientOptedOutError, SmsError } from "../../server/sms/types";
  */
 export async function handleSendSms(job: SendSmsJob): Promise<void> {
   const { clinicId, messageId } = job;
+  const kind = job.kind ?? "customer";
+  const operatorAlert = kind === "operator_alert";
 
   const message = await repo.messages.getMessage(clinicId, messageId);
   if (!message) {
@@ -44,6 +46,15 @@ export async function handleSendSms(job: SendSmsJob): Promise<void> {
     return;
   }
 
+  const to = operatorAlert ? env.OPERATOR_NOTIFY_MOBILE : contact.mobile;
+  if (!to) {
+    await reject(clinicId, messageId, "no operator mobile configured", {
+      codes: ["NO_OPERATOR_MOBILE"],
+      kind,
+    });
+    return;
+  }
+
   const blocks = checkSendable({
     body: message.body,
     clinicSlug: clinic.slug,
@@ -52,11 +63,13 @@ export async function handleSendSms(job: SendSmsJob): Promise<void> {
     contactOptedOut: contact.optedOut,
     blockedTerms,
     maxSegments: env.MAX_SEGMENTS_PER_DRAFT,
+    kind,
   });
 
   if (blocks.length > 0) {
     await reject(clinicId, messageId, describeBlocks(blocks), {
       codes: blocks.map((b) => b.code),
+      kind,
     });
     return;
   }
@@ -65,7 +78,7 @@ export async function handleSendSms(job: SendSmsJob): Promise<void> {
 
   try {
     const receipt = await adapter.send({
-      to: contact.mobile,
+      to,
       from: clinic.smsNumber ?? env.MOBILE_MESSAGE_TEST_SENDER,
       body: message.body,
       reference: message.id,
@@ -86,15 +99,19 @@ export async function handleSendSms(job: SendSmsJob): Promise<void> {
         provider: adapter.name,
         provider_message_id: receipt.providerMessageId,
         segments: receipt.segments,
+        kind,
       },
     });
   } catch (error) {
     if (error instanceof RecipientOptedOutError) {
       // The provider knows about an opt-out we do not. Record it so we stop
       // trying, here and in every future draft for this contact.
-      await repo.contacts.setOptedOut(clinicId, contact.id, true);
+      if (!operatorAlert) {
+        await repo.contacts.setOptedOut(clinicId, contact.id, true);
+      }
       await reject(clinicId, messageId, error.message, {
         codes: ["CONTACT_OPTED_OUT"],
+        kind,
       });
       return;
     }

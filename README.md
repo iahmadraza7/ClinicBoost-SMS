@@ -10,6 +10,7 @@ AI-assisted SMS enquiry and approval system for Australian aesthetic clinics.
 | `docs/DECISIONS.md` | What was agreed with the client, and why. |
 | `docs/SCHEMA.md` | Data model and validation failure codes. |
 | `docs/CURSOR_KICKOFF.md` | Build sequence and prompts. |
+| `docs/RUNBOOK.md` | Symptom, cause, fix. Written for the operator. |
 | `.cursor/rules/` | Always-on rules Cursor loads automatically. |
 
 ## Setup
@@ -57,6 +58,23 @@ desk.
 
 The session cookie lasts twelve hours and is signed with `AUTH_SECRET`. Rotating
 that secret logs the operator out everywhere.
+
+## Notifications
+
+A pending draft (never an auto-send) emails the operator as soon as it lands
+in the queue. An SMS follows only if it is still pending after
+`clinics.unattended_minutes` (default 15). Both payloads are the clinic name
+and a link to `/queue`. No question, no mobile, no name, no draft, no failure
+code. Resend stores account data in the US; personal data stays in Sydney.
+
+Set `OPERATOR_NOTIFY_EMAIL` and, if you want the SMS escalation,
+`OPERATOR_NOTIFY_MOBILE`. Turn `notify_sms` on per clinic; it defaults off so
+a misconfigured environment cannot spend the test credits. The SMS uses the
+same send-sms job as a customer reply, so it counts on `usage_counters` and
+stops when `GLOBAL_KILL_SWITCH` is on.
+
+Leave `RESEND_API_KEY` empty to log the email instead of sending it, the same
+idea as `SMS_PROVIDER=console`.
 
 ## Sending SMS
 

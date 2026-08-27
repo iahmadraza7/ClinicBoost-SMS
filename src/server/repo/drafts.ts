@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lt, sql } from "drizzle-orm";
 
 import {
   contacts,
@@ -191,24 +191,98 @@ export async function decideDraft(
   return row ?? null;
 }
 
-export async function markNotified(
+/**
+ * Pending drafts that have not had their queue email yet. The notify-email job
+ * is the prompt path; the unattended sweep also lists these so a failed enqueue
+ * after the draft was committed is not a silent miss.
+ */
+export async function listUnnotifiedPending(
   clinicId: string,
-  draftId: string,
   tx?: Executor,
-): Promise<void> {
-  await exec(tx)
-    .update(drafts)
-    .set({ notifiedAt: new Date() })
-    .where(and(eq(drafts.clinicId, clinicId), eq(drafts.id, draftId)));
+): Promise<Draft[]> {
+  return exec(tx)
+    .select()
+    .from(drafts)
+    .where(
+      and(
+        eq(drafts.clinicId, clinicId),
+        eq(drafts.state, "pending"),
+        isNull(drafts.notifiedAt),
+      ),
+    )
+    .orderBy(drafts.createdAt);
 }
 
-export async function markEscalated(
+/**
+ * Pending drafts that have been waiting longer than `olderThan` and have not
+ * yet had an SMS escalation. Used by the unattended sweep, which is one job
+ * for all clinics rather than a timer per draft.
+ */
+export async function listUnattendedPending(
+  clinicId: string,
+  olderThan: Date,
+  tx?: Executor,
+): Promise<Draft[]> {
+  return exec(tx)
+    .select()
+    .from(drafts)
+    .where(
+      and(
+        eq(drafts.clinicId, clinicId),
+        eq(drafts.state, "pending"),
+        isNull(drafts.escalatedAt),
+        lt(drafts.createdAt, olderThan),
+      ),
+    )
+    .orderBy(drafts.createdAt);
+}
+
+/**
+ * Records that the email went (or was skipped because email is off). Returns
+ * false if another worker already claimed it, or if the draft is no longer
+ * pending.
+ */
+export async function claimNotified(
   clinicId: string,
   draftId: string,
   tx?: Executor,
-): Promise<void> {
-  await exec(tx)
+): Promise<boolean> {
+  const [row] = await exec(tx)
+    .update(drafts)
+    .set({ notifiedAt: new Date() })
+    .where(
+      and(
+        eq(drafts.clinicId, clinicId),
+        eq(drafts.id, draftId),
+        eq(drafts.state, "pending"),
+        isNull(drafts.notifiedAt),
+      ),
+    )
+    .returning({ id: drafts.id });
+  return Boolean(row);
+}
+
+/**
+ * Records that the unattended SMS went (or was skipped). Same race rule as
+ * claimNotified: one claim wins.
+ */
+export async function claimEscalated(
+  clinicId: string,
+  draftId: string,
+  tx?: Executor,
+): Promise<boolean> {
+  const [row] = await exec(tx)
     .update(drafts)
     .set({ escalatedAt: new Date() })
-    .where(and(eq(drafts.clinicId, clinicId), eq(drafts.id, draftId)));
+    .where(
+      and(
+        eq(drafts.clinicId, clinicId),
+        eq(drafts.id, draftId),
+        eq(drafts.state, "pending"),
+        isNull(drafts.escalatedAt),
+      ),
+    )
+    .returning({ id: drafts.id });
+  return Boolean(row);
 }
+

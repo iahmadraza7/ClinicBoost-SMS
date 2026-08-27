@@ -18,6 +18,15 @@ export const QUEUES = {
   /** One job per outbound message, keyed by the message row that already exists. */
   sendSms: "send-sms",
   sendSmsFailed: "send-sms-failed",
+  /** Queue-landing email. One job per draft, keyed by the draft id. */
+  notifyEmail: "notify-email",
+  notifyEmailFailed: "notify-email-failed",
+  /**
+   * One scheduled sweep for every clinic's unattended queue, rather than a
+   * timer per draft. Also re-enqueues any pending draft whose email never
+   * landed, so a crash between persist and enqueue is not a silent miss.
+   */
+  unattendedSweep: "unattended-sweep",
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
@@ -45,9 +54,12 @@ export async function enqueueDraftReply(job: DraftReplyJob): Promise<string> {
   return jobId;
 }
 
+export type SendSmsKind = "customer" | "operator_alert";
+
 export type SendSmsJob = {
   clinicId: string;
   messageId: string;
+  kind?: SendSmsKind;
 };
 
 /**
@@ -69,6 +81,40 @@ export async function enqueueSendSms(job: SendSmsJob): Promise<string> {
   });
   if (!jobId) throw new Error("pg-boss returned no job id");
   return jobId;
+}
+
+export type NotifyEmailJob = {
+  clinicId: string;
+  draftId: string;
+};
+
+/**
+ * Called only after a pending draft is committed. Auto-sent drafts are never
+ * enqueued. singletonKey is the draft id so a retry of draft-reply, or the
+ * sweep covering a missed enqueue, cannot produce two emails.
+ */
+export async function enqueueNotifyEmail(job: NotifyEmailJob): Promise<string> {
+  const boss = await getBoss();
+  const jobId = await boss.send(QUEUES.notifyEmail, job, {
+    retryLimit: 5,
+    retryDelay: 30,
+    retryBackoff: true,
+    expireInMinutes: 15,
+    deadLetter: QUEUES.notifyEmailFailed,
+    singletonKey: job.draftId,
+  });
+  if (!jobId) throw new Error("pg-boss returned no job id");
+  return jobId;
+}
+
+/** Registers the every-minute unattended sweep. Safe to call on every worker boot. */
+export async function scheduleUnattendedSweep(): Promise<void> {
+  const boss = await getBoss();
+  await boss.schedule(QUEUES.unattendedSweep, "* * * * *", {}, {
+    tz: "Australia/Sydney",
+    singletonKey: "unattended-sweep",
+    singletonSeconds: 55,
+  });
 }
 
 let instance: PgBoss | null = null;
@@ -98,6 +144,12 @@ export function getBoss(): Promise<PgBoss> {
       name: QUEUES.sendSms,
       deadLetter: QUEUES.sendSmsFailed,
     });
+    await boss.createQueue(QUEUES.notifyEmailFailed);
+    await boss.createQueue(QUEUES.notifyEmail, {
+      name: QUEUES.notifyEmail,
+      deadLetter: QUEUES.notifyEmailFailed,
+    });
+    await boss.createQueue(QUEUES.unattendedSweep);
     instance = boss;
     return boss;
   })();

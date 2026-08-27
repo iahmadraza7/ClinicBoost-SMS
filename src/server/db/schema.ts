@@ -22,8 +22,8 @@ export type KbCategory = "config" | "offer" | "policy" | "faq" | "booking";
 export type KbStatus = "active" | "pending_review" | "archived";
 export type AnswerMode = "answerable" | "blocked" | "missing";
 export type KbSource = "imported" | "operator_edit" | "operator_answer";
-export type ConsentSource = "widget" | "sms_inbound";
-export type SourceType = "widget" | "sms_inbound" | "missed_call";
+export type ConsentSource = "widget" | "sms_inbound" | "operator";
+export type SourceType = "widget" | "sms_inbound" | "missed_call" | "operator";
 export type MessageDirection = "inbound" | "outbound";
 export type MessageStatus =
   | "queued"

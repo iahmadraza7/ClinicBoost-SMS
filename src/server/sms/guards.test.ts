@@ -50,6 +50,26 @@ describe("checkSendable", () => {
     expect(codes({ ...base, globalKillSwitch: true })).toContain("KILL_SWITCH");
   });
 
+  it("lets an operator alert through a clinic kill switch, but not the global one", () => {
+    expect(
+      codes({ ...base, kind: "operator_alert", killSwitch: true }),
+    ).toEqual([]);
+    expect(
+      codes({
+        ...base,
+        kind: "operator_alert",
+        killSwitch: true,
+        globalKillSwitch: true,
+      }),
+    ).toContain("KILL_SWITCH");
+  });
+
+  it("does not treat the operator sentinel as an opted-out customer", () => {
+    expect(
+      codes({ ...base, kind: "operator_alert", contactOptedOut: true }),
+    ).toEqual([]);
+  });
+
   it("stops a reply longer than the segment cap", () => {
     expect(codes({ ...base, body: "a".repeat(500) })).toContain(
       "SEGMENTS_EXCEEDED",

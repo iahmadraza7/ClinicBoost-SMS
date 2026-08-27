@@ -3,15 +3,22 @@ import "../server/bootstrap-env";
 import {
   getBoss,
   QUEUES,
+  scheduleUnattendedSweep,
   stopBoss,
   type DraftReplyJob,
+  type NotifyEmailJob,
   type SendSmsJob,
 } from "../server/queue/boss";
 import {
   handleDraftReply,
   handleDraftReplyFailed,
 } from "./jobs/draft-reply";
+import {
+  handleNotifyEmail,
+  handleNotifyEmailFailed,
+} from "./jobs/notify-email";
 import { handleSendSms, handleSendSmsFailed } from "./jobs/send-sms";
+import { handleUnattendedSweep } from "./jobs/unattended-sweep";
 
 async function main() {
   const boss = await getBoss();
@@ -51,6 +58,35 @@ async function main() {
       }
     },
   );
+
+  await boss.work<NotifyEmailJob>(
+    QUEUES.notifyEmail,
+    { batchSize: 1 },
+    async (jobs) => {
+      for (const job of jobs) {
+        await handleNotifyEmail(job.data);
+      }
+    },
+  );
+
+  await boss.work<NotifyEmailJob>(
+    QUEUES.notifyEmailFailed,
+    { batchSize: 1 },
+    async (jobs) => {
+      for (const job of jobs) {
+        await handleNotifyEmailFailed(job.data);
+      }
+    },
+  );
+
+  await boss.work(QUEUES.unattendedSweep, { batchSize: 1 }, async (jobs) => {
+    for (const job of jobs) {
+      void job;
+      await handleUnattendedSweep();
+    }
+  });
+
+  await scheduleUnattendedSweep();
 
   console.log(
     `worker ready, listening on ${Object.values(QUEUES).join(", ")}`,

@@ -116,7 +116,7 @@ mobile              text not null
 name                text nullable
 opted_out           boolean default false
 opted_out_at        timestamptz nullable
-consent_source      text        -- widget | sms_inbound
+consent_source      text        -- widget | sms_inbound | operator
 consent_at          timestamptz
 created_at, updated_at
 
@@ -131,7 +131,7 @@ Opt-out is per contact per clinic, never global.
 id                  uuid pk
 clinic_id           uuid fk not null
 contact_id          uuid fk not null
-source_type         text        -- widget | sms_inbound | missed_call (phase 2)
+source_type         text        -- widget | sms_inbound | missed_call (phase 2) | operator
 summary             text nullable   -- rolling summary of older messages
 last_message_at     timestamptz
 created_at
@@ -176,6 +176,12 @@ created_at
 
 `validation_result.failures[].code` is machine-readable so the queue can group
 and the runbook can reference it.
+
+`notified_at` is when the queue-landing email went (or was skipped because
+email is off for that clinic). `escalated_at` is when the unattended SMS went
+(or was skipped). Auto-sent drafts are never notified. Operator SMS alerts
+are stored on a sentinel contact (`mobile = "operator"`) so they never land
+on a customer thread.
 
 ## usage_counters
 
