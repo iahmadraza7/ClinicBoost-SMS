@@ -14,6 +14,7 @@ import type { AnswerMode, KbCategory, KbEntry } from "@/server/db/schema";
 import * as repo from "@/server/repo";
 
 import { ClinicSectionNav } from "../../clinic-section-nav";
+import { CsvUpload } from "./csv-upload";
 
 export const dynamic = "force-dynamic";
 
@@ -72,14 +73,17 @@ export default async function KnowledgePage({
           entries.
         </p>
       ) : (
-        <div className="mb-6 flex justify-end">
-          <Link
-            href={`/clinics/${clinic.slug}/knowledge/new`}
-            className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm text-white hover:bg-neutral-800"
-          >
-            Add entry
-          </Link>
-        </div>
+        <>
+          <CsvUpload slug={clinic.slug} />
+          <div className="mb-6 flex justify-end">
+            <Link
+              href={`/clinics/${clinic.slug}/knowledge/new`}
+              className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm text-white hover:bg-neutral-800"
+            >
+              Add entry
+            </Link>
+          </div>
+        </>
       )}
 
       {pending.length > 0 && (

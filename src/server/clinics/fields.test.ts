@@ -105,6 +105,7 @@ describe("createClinicSchema", () => {
     notifySms: false,
     unattendedMinutes: 15,
     widgetOrigins: [],
+    widgetTheme: null,
   };
 
   it("requires a close type rather than defaulting one", () => {

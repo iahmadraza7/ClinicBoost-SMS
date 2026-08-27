@@ -9,6 +9,7 @@ export function isPublicPath(pathname: string): boolean {
   const path = stripTrailingSlash(pathname);
 
   if (path === "/login") return true;
+  if (path === "/widget.js") return true;
   if (path === "/api/widget" || path.startsWith("/api/widget/")) return true;
   if (path === "/api/webhooks" || path.startsWith("/api/webhooks/")) return true;
 

@@ -41,7 +41,12 @@ The worker must be running for a draft to appear.
 Clinics are at http://localhost:3000/clinics. Adding one copies the Schedule 4
 blocked-terms baseline. The knowledge base for a clinic is at
 `/clinics/[slug]/knowledge`. New and edited entries wait for review before
-the model can use them.
+the model can use them. Per-treatment booking URLs upload as a CSV on that
+page. The embeddable widget is `/widget.js`:
+
+```html
+<script src="http://localhost:3000/widget.js" data-clinic="beauty-soiree"></script>
+```
 
 ## Operator login
 

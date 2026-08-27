@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { env } from "@/server/env";
 import * as repo from "@/server/repo";
 import { corsHeaders, isCrossOriginRejected } from "@/server/widget/cors";
 import { hit, PER_IP, PER_MOBILE } from "@/server/widget/rate-limit";
@@ -20,6 +21,10 @@ function clientIp(request: NextRequest): string {
   return request.headers.get("x-real-ip") ?? "unknown";
 }
 
+function extras(): string[] {
+  return [env.APP_URL];
+}
+
 export async function OPTIONS(request: NextRequest, { params }: Params) {
   const { clinicSlug } = await params;
   const clinic = await repo.clinics.getClinicBySlug(clinicSlug);
@@ -27,7 +32,7 @@ export async function OPTIONS(request: NextRequest, { params }: Params) {
   if (clinic.archivedAt) return new NextResponse(null, { status: 404 });
 
   const origin = request.headers.get("origin");
-  const headers = corsHeaders(clinic, origin);
+  const headers = corsHeaders(clinic, origin, extras());
   if (Object.keys(headers).length === 0) {
     return new NextResponse(null, { status: 403 });
   }
@@ -43,10 +48,10 @@ export async function POST(request: NextRequest, { params }: Params) {
   }
 
   const origin = request.headers.get("origin");
-  if (isCrossOriginRejected(clinic, origin)) {
+  if (isCrossOriginRejected(clinic, origin, extras())) {
     return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
   }
-  const headers = corsHeaders(clinic, origin);
+  const headers = corsHeaders(clinic, origin, extras());
 
   const ipLimit = hit(`ip:${clinic.id}:${clientIp(request)}`, PER_IP);
   if (!ipLimit.allowed) {
@@ -108,4 +113,30 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   // The response carries no enquiry detail back, only an acknowledgement.
   return NextResponse.json({ received: true }, { status: 202, headers });
+}
+
+/**
+ * Public config for the embeddable widget: clinic name and theme only.
+ */
+export async function GET(request: NextRequest, { params }: Params) {
+  const { clinicSlug } = await params;
+  const clinic = await repo.clinics.getClinicBySlug(clinicSlug);
+  if (!clinic || clinic.archivedAt) {
+    return NextResponse.json({ error: "Unknown clinic" }, { status: 404 });
+  }
+
+  const origin = request.headers.get("origin");
+  if (isCrossOriginRejected(clinic, origin, extras())) {
+    return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
+  }
+  const headers = corsHeaders(clinic, origin, extras());
+
+  return NextResponse.json(
+    {
+      name: clinic.name,
+      slug: clinic.slug,
+      theme: clinic.widgetTheme ?? {},
+    },
+    { headers },
+  );
 }

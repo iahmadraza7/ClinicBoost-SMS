@@ -42,3 +42,19 @@ see the entry, on purpose: a mistake must not poison the knowledge base.
 The knowledge page warns when there are no blocked or missing entries.
 Nine of the eleven clinics start that way. Write those entries yourself;
 they are not generated. Beauty Soiree is the one that already has them.
+
+## The widget on the landing page does nothing
+
+1. The clinic must not be archived.
+2. The landing page origin must be listed under widget origins (scheme and
+   host only, e.g. `https://offers.thebeautysoiree.com.au`).
+3. A failed submit must show an error on the form. If it says thanks, the
+   POST reached us. Look in the queue.
+4. The snippet is `/widget.js` with `data-clinic="the-slug"`.
+
+## A CSV import wrote the wrong booking link
+
+Nothing is written until Confirm import. If the preview looked wrong, do not
+confirm. Imported rows wait for review before the model can cite them. The
+audit log has one `kb.csv_imported` row with created / updated / skipped
+counts.

@@ -30,6 +30,7 @@ export type ClinicFormValues = {
   notifySms: boolean;
   unattendedMinutes: number;
   widgetOrigins: string[];
+  widgetTheme: { accent?: string; heading?: string; buttonLabel?: string } | null;
 };
 
 export function ClinicForm({
@@ -245,6 +246,42 @@ export function ClinicForm({
           defaultValue={widgetOriginsText(clinic?.widgetOrigins ?? [])}
           placeholder="https://offers.thebeautysoiree.com.au"
           className={inputClass}
+        />
+      </Field>
+
+      <Field
+        label="Widget heading"
+        hint="Shown above the form. Leave blank to use the clinic name."
+      >
+        <input
+          name="widgetHeading"
+          defaultValue={clinic?.widgetTheme?.heading ?? ""}
+          placeholder="Ask us a question"
+          className={inputClass}
+        />
+      </Field>
+
+      <Field
+        label="Widget button"
+        hint="The submit label. Leave blank for Send."
+      >
+        <input
+          name="widgetButtonLabel"
+          defaultValue={clinic?.widgetTheme?.buttonLabel ?? ""}
+          placeholder="Send"
+          className={`${inputClass} max-w-xs`}
+        />
+      </Field>
+
+      <Field
+        label="Widget accent"
+        hint="Hex colour for the button, e.g. #171717. Leave blank for black."
+      >
+        <input
+          name="widgetAccent"
+          defaultValue={clinic?.widgetTheme?.accent ?? ""}
+          placeholder="#171717"
+          className={`${inputClass} max-w-40`}
         />
       </Field>
 

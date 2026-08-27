@@ -115,6 +115,13 @@ export const clinicFieldsSchema = z.object({
     .min(1, "Unattended window is at least 1 minute")
     .max(24 * 60, "Unattended window cannot exceed a day"),
   widgetOrigins: z.array(z.string()),
+  widgetTheme: z
+    .object({
+      accent: z.string().optional(),
+      heading: z.string().optional(),
+      buttonLabel: z.string().optional(),
+    })
+    .nullable(),
 });
 
 export const clinicSlugSchema = z
@@ -176,6 +183,28 @@ export function widgetOriginsText(origins: string[]): string {
   return origins.join("\n");
 }
 
+export function parseWidgetTheme(form: FormData):
+  | { theme: { accent?: string; heading?: string; buttonLabel?: string } | null }
+  | { error: string } {
+  const accent = String(form.get("widgetAccent") ?? "").trim();
+  const heading = String(form.get("widgetHeading") ?? "").trim();
+  const buttonLabel = String(form.get("widgetButtonLabel") ?? "").trim();
+
+  if (accent && !/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(accent)) {
+    return { error: "Widget accent must be a hex colour, e.g. #171717" };
+  }
+
+  if (!accent && !heading && !buttonLabel) return { theme: null };
+
+  return {
+    theme: {
+      ...(accent ? { accent } : {}),
+      ...(heading ? { heading: heading.slice(0, 80) } : {}),
+      ...(buttonLabel ? { buttonLabel: buttonLabel.slice(0, 40) } : {}),
+    },
+  };
+}
+
 export function parseCheckbox(value: FormDataEntryValue | null): boolean {
   return value === "true" || value === "on";
 }
@@ -186,6 +215,9 @@ export function clinicFieldsFromForm(form: FormData): {
 } {
   const origins = parseWidgetOrigins(String(form.get("widgetOrigins") ?? ""));
   if (!Array.isArray(origins)) return { error: origins.error };
+
+  const theme = parseWidgetTheme(form);
+  if ("error" in theme) return { error: theme.error };
 
   const parsed = clinicFieldsSchema.safeParse({
     name: form.get("name"),
@@ -202,6 +234,7 @@ export function clinicFieldsFromForm(form: FormData): {
     notifySms: parseCheckbox(form.get("notifySms")),
     unattendedMinutes: form.get("unattendedMinutes"),
     widgetOrigins: origins,
+    widgetTheme: theme.theme,
   });
 
   if (!parsed.success) {
@@ -228,6 +261,7 @@ export function clinicAuditShape(clinic: {
   unattendedMinutes: number;
   widgetOrigins: string[];
   archivedAt: Date | null;
+  widgetTheme: { accent?: string; heading?: string; buttonLabel?: string } | null;
 }) {
   return {
     slug: clinic.slug,
@@ -245,6 +279,7 @@ export function clinicAuditShape(clinic: {
     notify_sms: clinic.notifySms,
     unattended_minutes: clinic.unattendedMinutes,
     widget_origins: clinic.widgetOrigins,
+    widget_theme: clinic.widgetTheme,
     archived_at: clinic.archivedAt?.toISOString() ?? null,
   };
 }

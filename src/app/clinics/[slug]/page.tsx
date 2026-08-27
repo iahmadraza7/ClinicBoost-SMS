@@ -3,12 +3,14 @@ import { notFound } from "next/navigation";
 
 import { DashboardHeader } from "@/app/dashboard-header";
 import { requireOperator } from "@/server/auth";
+import { env } from "@/server/env";
 import * as repo from "@/server/repo";
 
 import { ArchiveControls } from "../archive-controls";
 import { ClinicForm } from "../clinic-form";
 import { ClinicSectionNav } from "../clinic-section-nav";
 import { SmsStatus } from "../sms-status";
+import { WidgetPreview } from "../widget-preview";
 
 export const dynamic = "force-dynamic";
 
@@ -68,8 +70,26 @@ export default async function ClinicDetailPage({
               notifySms: clinic.notifySms,
               unattendedMinutes: clinic.unattendedMinutes,
               widgetOrigins: clinic.widgetOrigins,
+              widgetTheme: clinic.widgetTheme,
             }}
           />
+          <div className="mt-10 border-t border-neutral-200 pt-6">
+            <h2 className="text-sm font-medium text-neutral-900">Widget</h2>
+            <p className="mt-1 text-sm text-neutral-600">
+              Paste this on the clinic landing page. It works in Elementor and
+              on a plain WordPress page. The form is isolated from the page
+              styles.
+            </p>
+            <pre className="mt-3 overflow-x-auto rounded-md bg-neutral-50 px-3 py-2 text-xs text-neutral-800">
+              {`<script src="${env.APP_URL}/widget.js" data-clinic="${clinic.slug}"></script>`}
+            </pre>
+            <p className="mt-4 text-sm text-neutral-600">
+              Try it here. Submitting creates a real enquiry.
+            </p>
+            <div className="mt-3">
+              <WidgetPreview slug={clinic.slug} />
+            </div>
+          </div>
           <div className="mt-10 border-t border-neutral-200 pt-6">
             <h2 className="text-sm font-medium text-neutral-900">Archive</h2>
             <p className="mt-1 text-sm text-neutral-600">

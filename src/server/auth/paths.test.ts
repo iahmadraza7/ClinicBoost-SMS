@@ -11,6 +11,7 @@ describe("isPublicPath", () => {
   it("lets the widget through, including OPTIONS on the clinic slug", () => {
     expect(isPublicPath("/api/widget/beauty-soiree")).toBe(true);
     expect(isPublicPath("/api/widget")).toBe(true);
+    expect(isPublicPath("/widget.js")).toBe(true);
   });
 
   it("lets both Mobile Message webhooks through", () => {

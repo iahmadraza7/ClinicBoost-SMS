@@ -32,6 +32,10 @@ endpoint is public and CORS has to be restricted to the clinic's own landing
 pages, so the allowed origins have to live somewhere. Empty means the endpoint
 accepts no cross-origin browser submissions for that clinic.
 
+`widget_theme` is `{ accent, heading, buttonLabel }` for the embeddable
+widget. The snippet lives at `/widget.js`. GET `/api/widget/:slug` returns
+the clinic name and that theme, nothing else.
+
 `close_type` matters. A `manual` clinic must never be told the booking is
 confirmed. A `link_only` clinic must never be told someone will get back to
 them. The clinic form makes the operator pick that behaviour, not a label.
@@ -110,6 +114,13 @@ created_at, updated_at
 
 `price_display` exists so the validator can string-match. Never format a price
 from `price_cents` into a draft.
+
+Booking URLs are per treatment. The operator uploads a CSV (treatment name,
+booking URL, price display) on the knowledge page. The file is previewed
+before anything is written. Malformed URLs fail at parse, not after import.
+Confirm upserts the `offers` row and a booking knowledge-base entry that
+lands as `pending_review`. The import writes one audit row with created /
+updated / skipped counts, not one row per treatment.
 
 ## blocked_terms
 
@@ -214,8 +225,8 @@ id, clinic_id, actor, action, entity_type, entity_id, before jsonb, after jsonb,
 ```
 
 Every approve, edit, reject, send, KB change (including create, update,
-review, archive and restore), threshold change, kill switch toggle, clinic
-create, clinic update, archive and restore.
+review, archive, restore and CSV import), threshold change, kill switch toggle,
+clinic create, clinic update, archive and restore.
 
 ## Validation failure codes
 
