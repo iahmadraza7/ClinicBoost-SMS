@@ -29,6 +29,10 @@ services:
         condition: service_healthy
     ports:
       - "127.0.0.1:3000:3000"
+    # Converted skill files stay on the host (gitignored, not in the image).
+    # Seed reads knowledge-source/converted/beauty-soiree.md from /app.
+    volumes:
+      - ./knowledge-source/converted:/app/knowledge-source/converted:ro
 
   worker:
     build:

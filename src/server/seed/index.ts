@@ -9,11 +9,11 @@ import { CLINIC, ENTRIES, OFFERS, SOURCE_ASSERTIONS } from "./beauty-soiree";
 const SOURCE_FILE = "knowledge-source/converted/beauty-soiree.md";
 const ACTOR = "seed";
 
+const SOURCE_MISSING = `${SOURCE_FILE} not found. The image does not ship it. On a laptop run: python scripts/convert-skills.py. On the server copy that file onto the host; compose mounts knowledge-source/converted read-only at /app/knowledge-source/converted. Then: docker compose exec app node dist/seed.cjs`;
+
 async function main() {
   if (!existsSync(SOURCE_FILE)) {
-    throw new Error(
-      `${SOURCE_FILE} not found. Run: python scripts/convert-skills.py`,
-    );
+    throw new Error(SOURCE_MISSING);
   }
 
   const source = readFileSync(SOURCE_FILE, "utf8");

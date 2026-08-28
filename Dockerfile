@@ -17,7 +17,7 @@ COPY . .
 # load. No database is reachable at build time and none is needed, so this
 # placeholder satisfies the check. The real value comes from .env at runtime.
 RUN DATABASE_URL=postgresql://build:build@localhost:5432/build npm run build
-# The worker and the migrate script are bundled to single files so their
+# The worker, migrate and seed scripts are bundled to single files so their
 # runtime images need no node_modules at all. pg-native is optional inside pg
 # and is never installed.
 RUN npx esbuild src/worker/index.ts \
@@ -25,7 +25,8 @@ RUN npx esbuild src/worker/index.ts \
       --external:pg-native --outfile=dist/worker.cjs \
  && npx esbuild src/server/db/migrate.ts \
       --bundle --platform=node --target=node22 --format=cjs \
-      --external:pg-native --outfile=dist/migrate.cjs
+      --external:pg-native --outfile=dist/migrate.cjs \
+ && npm run bundle:seed
 
 # --- Next.js app -------------------------------------------------------------
 FROM base AS runner
@@ -38,6 +39,7 @@ COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
 COPY --from=build --chown=app:app /app/public ./public
 COPY --from=build --chown=app:app /app/dist/migrate.cjs ./dist/migrate.cjs
+COPY --from=build --chown=app:app /app/dist/seed.cjs ./dist/seed.cjs
 COPY --chown=app:app drizzle ./drizzle
 COPY --chown=app:app docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh

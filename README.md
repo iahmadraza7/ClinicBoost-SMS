@@ -154,9 +154,16 @@ README used to say `ssh reflex`; that alias does not exist until you add a
 `Host reflex` block. See the runbook if port 22 times out (fail2ban).
 
 The `app` container applies migrations on boot, before it serves traffic, so
-there is no separate migrate step on deploy. Seed is not in the image:
-copy `knowledge-source/converted/beauty-soiree.md` onto the server before
-`npm run db:seed`. Watch `df -h /` around every build.
+there is no separate migrate step on deploy. Seed is bundled as `dist/seed.cjs`
+the same way migrate is, but the converted skill file is not in the image
+(gitignored client content). Copy `knowledge-source/converted/beauty-soiree.md`
+onto the host; compose mounts that directory read-only. Then:
+
+```bash
+docker compose exec app node dist/seed.cjs
+```
+
+Watch `df -h /` around every build.
 
 ## Tests
 

@@ -128,10 +128,12 @@ Recorded 28 Aug 2026, first attempt to clone into `/opt/clinicboost`.
    public key is in `authorized_keys` for a known user, clone, compose and
    seed cannot run.
 3. **A git clone is not enough to seed.** `knowledge-source/converted/` is
-   gitignored (client content) and dockerignored. `npm run db:seed` refuses
-   to run without `knowledge-source/converted/beauty-soiree.md`. Copy that
-   file onto the server after clone, or the seed exits before writing
-   Beauty Soiree.
+   gitignored (client content) and dockerignored. The image has `dist/seed.cjs`
+   but not the markdown. Copy `knowledge-source/converted/beauty-soiree.md`
+   onto the host next to compose. The app container mounts that directory
+   read-only. Then `docker compose exec app node dist/seed.cjs`. If the
+   file is missing, seed names that path and exits before writing Beauty
+   Soiree.
 4. **Disk.** 5.2GB free on an 8.7GB disk. `docker compose build` will pull
    `node:22-alpine`, `postgres:16-alpine` and `caddy:2-alpine` and keep
    Next.js build layers. Run `docker image prune -af` and `df -h /` before
