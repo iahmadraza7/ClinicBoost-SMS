@@ -2,6 +2,7 @@ import { formatSydneyDateTime } from "@/lib/time";
 import { env } from "../env";
 import * as repo from "../repo";
 import { getSmsAdapter, MobileMessageAdapter, SmsError } from "../sms";
+import { anthropicFromHttp, anthropicKeyFailure } from "./anthropic";
 import {
   domainFromFromAddress,
   lastSendCheck,
@@ -31,23 +32,26 @@ async function checkDatabase(): Promise<HealthCheck> {
 }
 
 async function checkAnthropic(): Promise<HealthCheck> {
-  const key = env.ANTHROPIC_API_KEY;
-  if (!key) {
-    return {
-      id: "anthropic",
-      label: "Anthropic",
-      tone: "fail",
-      detail: "ANTHROPIC_API_KEY is not set.",
-    };
-  }
+  const key = (env.ANTHROPIC_API_KEY ?? "").trim();
+  const early = anthropicKeyFailure(key === "" ? undefined : key);
+  if (early) return early;
+
+  const model = env.ANTHROPIC_MODEL;
 
   let response: Response;
   try {
-    response = await fetch("https://api.anthropic.com/v1/models?limit=100", {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
       headers: {
         "x-api-key": key,
         "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1,
+        messages: [{ role: "user", content: "." }],
+      }),
       signal: AbortSignal.timeout(FETCH_MS),
     });
   } catch {
@@ -59,41 +63,7 @@ async function checkAnthropic(): Promise<HealthCheck> {
     };
   }
 
-  if (response.status === 401 || response.status === 403) {
-    return {
-      id: "anthropic",
-      label: "Anthropic",
-      tone: "fail",
-      detail: "Anthropic rejected the key.",
-    };
-  }
-
-  if (!response.ok) {
-    return {
-      id: "anthropic",
-      label: "Anthropic",
-      tone: "fail",
-      detail: `Anthropic returned ${response.status}.`,
-    };
-  }
-
-  const body = (await response.json()) as { data?: { id: string }[] };
-  const ids = (body.data ?? []).map((m) => m.id);
-  if (ids.length > 0 && !ids.includes(env.ANTHROPIC_MODEL)) {
-    return {
-      id: "anthropic",
-      label: "Anthropic",
-      tone: "amber",
-      detail: `Key is valid, but ${env.ANTHROPIC_MODEL} is not on this account.`,
-    };
-  }
-
-  return {
-    id: "anthropic",
-    label: "Anthropic",
-    tone: "ok",
-    detail: "Key is valid.",
-  };
+  return anthropicFromHttp(response.status, model);
 }
 
 async function checkSms(): Promise<HealthCheck> {

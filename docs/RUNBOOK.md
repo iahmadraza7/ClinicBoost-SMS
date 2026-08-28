@@ -11,7 +11,7 @@ Open https://reply.clinicboost.com.au/ first. The health panel is six rows:
 | Row | Green means | If it is not green |
 |---|---|---|
 | Database | Postgres answered | The box or the database container is down |
-| Anthropic | The Claude key was accepted | The key is missing, rotated, or the model name is wrong |
+| Anthropic | The Claude key answered a one-token ping | The key is missing, a placeholder, rejected, or the model name is wrong |
 | Mobile Message | Credits remain | Test mode, no credits, or the API user/password is wrong |
 | Resend | notify.clinicboost.com.au is verified | The key is missing or the domain is not verified |
 | Worker | The every-minute sweep ran recently | `npm run worker:dev` locally, or the `worker` container on the server |
