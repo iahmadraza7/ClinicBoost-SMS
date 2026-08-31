@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, lt, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 
 import {
   contacts,
@@ -23,6 +23,9 @@ export async function createDraft(
     selfConfidence?: number;
     validationResult?: ValidationResult | null;
     state?: DraftState;
+    correctionNote?: string | null;
+    redraftOf?: string | null;
+    editedBody?: string | null;
   },
   tx?: Executor,
 ): Promise<Draft> {
@@ -44,6 +47,18 @@ export async function getDraft(
     .where(and(eq(drafts.clinicId, clinicId), eq(drafts.id, draftId)))
     .limit(1);
   return row ?? null;
+}
+
+export async function getDraftsByIds(
+  clinicId: string,
+  draftIds: string[],
+  tx?: Executor,
+): Promise<Draft[]> {
+  if (draftIds.length === 0) return [];
+  return exec(tx)
+    .select()
+    .from(drafts)
+    .where(and(eq(drafts.clinicId, clinicId), inArray(drafts.id, draftIds)));
 }
 
 /**
@@ -88,6 +103,7 @@ export type QueueItem = {
   clinicId: string;
   conversationId: string;
   draftBody: string;
+  editedBody: string | null;
   validationResult: ValidationResult | null;
   selfConfidence: number;
   createdAt: Date;
@@ -112,6 +128,7 @@ export async function listQueue(
       clinicId: drafts.clinicId,
       conversationId: drafts.conversationId,
       draftBody: drafts.draftBody,
+      editedBody: drafts.editedBody,
       validationResult: drafts.validationResult,
       selfConfidence: drafts.selfConfidence,
       createdAt: drafts.createdAt,
@@ -190,8 +207,12 @@ export async function decideDraft(
   clinicId: string,
   draftId: string,
   values: {
-    state: Extract<DraftState, "approved" | "edited" | "rejected">;
+    state: Extract<
+      DraftState,
+      "approved" | "edited" | "rejected" | "dismissed" | "redrafted"
+    >;
     editedBody?: string | null;
+    correctionNote?: string | null;
     decidedBy: string;
   },
   tx?: Executor,
@@ -200,8 +221,84 @@ export async function decideDraft(
     .update(drafts)
     .set({
       state: values.state,
-      editedBody: values.editedBody ?? null,
+      editedBody: values.editedBody ?? undefined,
+      correctionNote: values.correctionNote ?? undefined,
       decidedBy: values.decidedBy,
+      decidedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(drafts.clinicId, clinicId),
+        eq(drafts.id, draftId),
+        eq(drafts.state, "pending"),
+      ),
+    )
+    .returning();
+  return row ?? null;
+}
+
+/** Saves an operator edit without sending. The draft stays pending. */
+export async function saveEditedBody(
+  clinicId: string,
+  draftId: string,
+  editedBody: string,
+  tx?: Executor,
+): Promise<Draft | null> {
+  const [row] = await exec(tx)
+    .update(drafts)
+    .set({ editedBody })
+    .where(
+      and(
+        eq(drafts.clinicId, clinicId),
+        eq(drafts.id, draftId),
+        eq(drafts.state, "pending"),
+      ),
+    )
+    .returning();
+  return row ?? null;
+}
+
+/**
+ * Puts a dismissed or redrafted draft back in the queue. Used when the
+ * operator reverts from the audit log.
+ */
+export async function reopenDraft(
+  clinicId: string,
+  draftId: string,
+  fromStates: DraftState[],
+  tx?: Executor,
+): Promise<Draft | null> {
+  const [row] = await exec(tx)
+    .update(drafts)
+    .set({
+      state: "pending",
+      decidedBy: null,
+      decidedAt: null,
+    })
+    .where(
+      and(
+        eq(drafts.clinicId, clinicId),
+        eq(drafts.id, draftId),
+        inArray(drafts.state, fromStates),
+      ),
+    )
+    .returning();
+  return row ?? null;
+}
+
+/** Closes a still-pending redraft so reverting the original can take it off the queue. */
+export async function closePendingDraft(
+  clinicId: string,
+  draftId: string,
+  state: Extract<DraftState, "dismissed" | "redrafted">,
+  decidedBy: string,
+  tx?: Executor,
+): Promise<Draft | null> {
+  const [row] = await exec(tx)
+    .update(drafts)
+    .set({
+      state,
+      decidedBy,
       decidedAt: new Date(),
     })
     .where(

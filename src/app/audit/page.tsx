@@ -4,6 +4,7 @@ import { AUDIT_ACTIONS, auditDetail } from "@/server/audit/actions";
 import * as repo from "@/server/repo";
 
 import { DashboardHeader } from "../dashboard-header";
+import { RevertButton } from "./revert-button";
 
 export const dynamic = "force-dynamic";
 
@@ -33,12 +34,15 @@ export default async function AuditPage({
       });
       return rows.map((row) => ({
         id: row.id,
+        clinicId: clinic.id,
         clinicName: clinic.name,
         actor: row.actor,
         action: row.action,
         detail: auditDetail(row.action, row.after),
         at: formatSydneyDateTime(row.createdAt),
         createdAt: row.createdAt.toISOString(),
+        revertible:
+          row.action === "draft.dismissed" || row.action === "draft.redrafted",
       }));
     }),
   );
@@ -53,8 +57,8 @@ export default async function AuditPage({
       <DashboardHeader email={operator.email} current="audit">
         <h1 className="mt-3 text-xl font-semibold">Audit log</h1>
         <p className="mt-1 text-sm text-neutral-600">
-          Every approve, edit, reject, send and knowledge base change. Newest
-          first.
+          Every approve, edit, dismiss, redraft, send and knowledge base
+          change. Dismiss and redraft can be reverted. Newest first.
         </p>
       </DashboardHeader>
 
@@ -102,18 +106,19 @@ export default async function AuditPage({
           Nothing matches.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-neutral-300 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-neutral-200 text-xs text-neutral-500">
+            <thead className="border-b border-neutral-300 bg-neutral-50 text-xs text-neutral-500">
               <tr>
                 <th className="px-4 py-2 font-medium">When</th>
                 <th className="px-4 py-2 font-medium">Clinic</th>
                 <th className="px-4 py-2 font-medium">Actor</th>
                 <th className="px-4 py-2 font-medium">Action</th>
                 <th className="px-4 py-2 font-medium">Detail</th>
+                <th className="px-4 py-2 font-medium"> </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100">
+            <tbody className="divide-y divide-neutral-200">
               {rows.map((row) => (
                 <tr key={row.id}>
                   <td className="whitespace-nowrap px-4 py-2 text-neutral-700">
@@ -125,6 +130,11 @@ export default async function AuditPage({
                     {row.action}
                   </td>
                   <td className="px-4 py-2 text-neutral-600">{row.detail}</td>
+                  <td className="px-4 py-2">
+                    {row.revertible && (
+                      <RevertButton clinicId={row.clinicId} auditId={row.id} />
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

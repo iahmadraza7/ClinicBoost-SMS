@@ -31,7 +31,14 @@ export type ClinicFormValues = {
   notifySms: boolean;
   unattendedMinutes: number;
   widgetOrigins: string[];
-  widgetTheme: { accent?: string; heading?: string; buttonLabel?: string } | null;
+  widgetTheme: {
+    accent?: string;
+    heading?: string;
+    buttonLabel?: string;
+    intro?: string;
+    preview?: string;
+    iconUrl?: string;
+  } | null;
   voice: string | null;
   voicePending: string | null;
 };
@@ -268,12 +275,48 @@ export function ClinicForm({
 
       <Field
         label="Widget heading"
-        hint="Shown above the form. Leave blank to use the clinic name."
+        hint="Shown at the top of the open panel. Leave blank to use the clinic name."
       >
         <input
           name="widgetHeading"
           defaultValue={clinic?.widgetTheme?.heading ?? ""}
           placeholder="Ask us a question"
+          className={inputClass}
+        />
+      </Field>
+
+      <Field
+        label="Widget intro"
+        hint="One line under the heading in the open panel."
+      >
+        <input
+          name="widgetIntro"
+          defaultValue={clinic?.widgetTheme?.intro ?? ""}
+          placeholder="Leave your name, mobile and question. We will text you back."
+          className={inputClass}
+        />
+      </Field>
+
+      <Field
+        label="Widget preview"
+        hint="Text beside the collapsed bubble."
+      >
+        <input
+          name="widgetPreview"
+          defaultValue={clinic?.widgetTheme?.preview ?? ""}
+          placeholder="Ask us a question"
+          className={inputClass}
+        />
+      </Field>
+
+      <Field
+        label="Widget icon URL"
+        hint="Image URL for the collapsed bubble. No file upload. Leave blank for the first letter of the heading."
+      >
+        <input
+          name="widgetIconUrl"
+          defaultValue={clinic?.widgetTheme?.iconUrl ?? ""}
+          placeholder="https://example.com/icon.png"
           className={inputClass}
         />
       </Field>
@@ -292,7 +335,7 @@ export function ClinicForm({
 
       <Field
         label="Widget accent"
-        hint="Hex colour for the button, e.g. #171717. Leave blank for black."
+        hint="Hex colour for the bubble and send button, e.g. #171717. Leave blank for black."
       >
         <input
           name="widgetAccent"

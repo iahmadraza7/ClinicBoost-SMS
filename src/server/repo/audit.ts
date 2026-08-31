@@ -51,3 +51,16 @@ export async function listAudit(
     .orderBy(desc(auditLog.createdAt))
     .limit(limit);
 }
+
+export async function getAudit(
+  clinicId: string,
+  auditId: string,
+  tx?: Executor,
+): Promise<AuditLogRow | null> {
+  const [row] = await exec(tx)
+    .select()
+    .from(auditLog)
+    .where(and(eq(auditLog.clinicId, clinicId), eq(auditLog.id, auditId)))
+    .limit(1);
+  return row ?? null;
+}

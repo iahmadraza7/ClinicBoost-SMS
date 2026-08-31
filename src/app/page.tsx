@@ -40,11 +40,11 @@ export default async function HomePage() {
         </p>
       </DashboardHeader>
 
-      <section className="rounded-lg border border-neutral-200 bg-white">
-        <h2 className="border-b border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-900">
+      <section className="rounded-lg border border-neutral-300 bg-white">
+        <h2 className="border-b border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-900">
           Health
         </h2>
-        <ul className="divide-y divide-neutral-100">
+        <ul className="divide-y divide-neutral-200">
           {health.map((check) => (
             <HealthRow key={check.id} check={check} />
           ))}
@@ -52,7 +52,7 @@ export default async function HomePage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="text-sm font-medium text-neutral-900">
+        <h2 className="text-sm font-semibold text-neutral-900">
           Usage this month
         </h2>
         <p className="mt-1 text-sm text-neutral-600">
@@ -113,9 +113,9 @@ function UsageTable({
   }
 
   return (
-    <div className="mt-3 overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+    <div className="mt-3 overflow-x-auto rounded-lg border border-neutral-300 bg-white">
       <table className="w-full text-left text-sm">
-        <thead className="border-b border-neutral-200 text-xs text-neutral-500">
+        <thead className="border-b border-neutral-300 bg-neutral-50 text-xs text-neutral-500">
           <tr>
             <th className="px-4 py-2 font-medium">Clinic</th>
             <th className="px-4 py-2 font-medium">Segments in</th>
@@ -123,7 +123,7 @@ function UsageTable({
             <th className="px-4 py-2 font-medium">AI calls</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-100">
+        <tbody className="divide-y divide-neutral-200">
           {rows.map((row) => (
             <tr key={row.slug}>
               <td className="px-4 py-2 text-neutral-900">{row.name}</td>

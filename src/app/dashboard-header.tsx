@@ -14,9 +14,9 @@ export function DashboardHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header className="mb-6 flex items-start justify-between gap-4">
+    <header className="mb-8 flex items-start justify-between gap-4">
       <div>
-        <nav className="flex gap-4 text-sm">
+        <nav className="flex gap-5 border-b border-neutral-300 text-sm">
           <NavLink href="/" active={current === "home"}>
             Home
           </NavLink>
@@ -54,8 +54,8 @@ function NavLink({
       href={href}
       className={
         active
-          ? "font-medium text-neutral-900"
-          : "text-neutral-600 hover:text-neutral-900"
+          ? "-mb-px border-b-2 border-neutral-900 pb-2 font-semibold text-neutral-900"
+          : "pb-2 text-neutral-600 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
       }
     >
       {children}

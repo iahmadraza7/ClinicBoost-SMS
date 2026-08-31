@@ -36,9 +36,10 @@ endpoint is public and CORS has to be restricted to the clinic's own landing
 pages, so the allowed origins have to live somewhere. Empty means the endpoint
 accepts no cross-origin browser submissions for that clinic.
 
-`widget_theme` is `{ accent, heading, buttonLabel }` for the embeddable
-widget. The snippet lives at `/widget.js`. GET `/api/widget/:slug` returns
-the clinic name and that theme, nothing else.
+`widget_theme` is `{ accent, heading, buttonLabel, intro, preview, iconUrl }`
+for the embeddable widget. Collapsed state is a bubble plus preview text.
+`iconUrl` is a URL, not an uploaded file. The snippet lives at `/widget.js`.
+GET `/api/widget/:slug` returns the clinic name and that theme, nothing else.
 
 `close_type` matters. A `manual` clinic must never be told the booking is
 confirmed. A `link_only` clinic must never be told someone will get back to
@@ -75,6 +76,7 @@ answer_mode         text        -- answerable | blocked | missing
 block_deflect       text nullable  -- what to say instead when blocked
 trigger_terms       text[] not null default '{}'
 source              text        -- imported | operator_edit | operator_answer
+source_draft_id     uuid nullable fk -> drafts   -- queue edit suggestion
 created_by          text
 reviewed_by         text nullable
 reviewed_at         timestamptz nullable
@@ -207,8 +209,10 @@ claims              jsonb       -- [{text, source_id}]
 matched_offer_id    uuid nullable
 self_confidence     int
 validation_result   jsonb       -- {passed: bool, failures: [{code, detail}]}
-state               text        -- auto_sent | pending | approved | edited | rejected
+state               text        -- auto_sent | pending | approved | edited | rejected | dismissed | redrafted
 edited_body         text nullable
+correction_note     text nullable
+redraft_of          uuid nullable fk -> drafts
 decided_by          text nullable
 decided_at          timestamptz nullable
 notified_at         timestamptz nullable
@@ -240,9 +244,12 @@ Read on the dashboard home, per clinic, for the current Sydney month.
 id, clinic_id, actor, action, entity_type, entity_id, before jsonb, after jsonb, created_at
 ```
 
-Every approve, edit, reject, send, KB change (including create, update,
-review, archive, restore and CSV import), re-validate, threshold change, kill
-switch toggle, clinic create, clinic update, archive and restore.
+Every approve, edit, dismiss, redraft, send, KB change (including create,
+update, review, archive, restore, discard and full import), re-validate,
+threshold change, kill switch toggle, clinic create, clinic update, archive
+and restore.
+
+`draft.dismissed` and `draft.redrafted` can be reverted from `/audit`.
 
 The operator reads this at `/audit`, filtered by clinic and action.
 `draft.revalidated` stores the failure codes before and after.

@@ -5,13 +5,20 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { formatAuMobile } from "@/lib/mobile";
 import { countSegments } from "@/lib/segments";
 import type { CloseType, ValidationResult } from "@/server/db/schema";
-import { approveDraft, editAndApproveDraft, rejectDraft, revalidateDraft } from "./actions";
+import {
+  approveDraft,
+  dismissDraft,
+  redraftDraft,
+  revalidateDraft,
+  saveEditDraft,
+} from "./actions";
 
 export type QueueRow = {
   draftId: string;
   clinicId: string;
   conversationId: string;
   draftBody: string;
+  editedBody: string | null;
   validationResult: ValidationResult | null;
   selfConfidence: number;
   createdAt: string;
@@ -28,9 +35,10 @@ export type QueueRow = {
 
 const SHORTCUTS = [
   ["j / k", "move"],
+  ["r", "redraft"],
   ["a", "approve"],
   ["e", "edit"],
-  ["r", "reject"],
+  ["d", "dismiss"],
   ["v", "re-validate"],
   ["Ctrl+Enter", "save edit"],
   ["Esc", "cancel"],
@@ -45,16 +53,20 @@ export function QueueList({
 }) {
   const [selected, setSelected] = useState(0);
   const [editing, setEditing] = useState(false);
+  const [redrafting, setRedrafting] = useState(false);
   const [editValue, setEditValue] = useState("");
+  const [redraftNote, setRedraftNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const redraftRef = useRef<HTMLTextAreaElement>(null);
   const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
 
   const index = Math.min(selected, Math.max(rows.length - 1, 0));
   const row = rows[index];
+  const displayed = row?.editedBody ?? row?.draftBody ?? "";
 
   useEffect(() => {
     itemRefs.current[index]?.scrollIntoView({ block: "nearest" });
@@ -65,8 +77,15 @@ export function QueueList({
   }, [editing]);
 
   useEffect(() => {
+    if (redrafting) redraftRef.current?.focus();
+  }, [redrafting]);
+
+  useEffect(() => {
     setNote(null);
     setMessage(null);
+    setEditing(false);
+    setRedrafting(false);
+    setRedraftNote("");
   }, [row?.draftId]);
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
@@ -75,7 +94,10 @@ export function QueueList({
     startTransition(async () => {
       const result = await action();
       if (!result.ok) setMessage(result.error ?? "Something went wrong");
-      else setEditing(false);
+      else {
+        setEditing(false);
+        setRedrafting(false);
+      }
     });
   }
 
@@ -100,25 +122,42 @@ export function QueueList({
     run(() => approveDraft({ clinicId: row.clinicId, draftId: row.draftId }));
   }
 
-  function reject() {
+  function dismiss() {
     if (!row) return;
-    run(() => rejectDraft({ clinicId: row.clinicId, draftId: row.draftId }));
+    run(() => dismissDraft({ clinicId: row.clinicId, draftId: row.draftId }));
   }
 
   function saveEdit() {
     if (!row) return;
-    run(() =>
-      editAndApproveDraft({
+    startTransition(async () => {
+      setMessage(null);
+      const result = await saveEditDraft({
         clinicId: row.clinicId,
         draftId: row.draftId,
         body: editValue,
+      });
+      if (!result.ok) setMessage(result.error ?? "Something went wrong");
+      else {
+        setEditing(false);
+        setNote("Saved. The item is still pending. Approve to send.");
+      }
+    });
+  }
+
+  function submitRedraft() {
+    if (!row) return;
+    run(() =>
+      redraftDraft({
+        clinicId: row.clinicId,
+        draftId: row.draftId,
+        note: redraftNote,
       }),
     );
   }
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (editing || pending) return;
+      if (editing || redrafting || pending) return;
 
       const target = event.target as HTMLElement | null;
       if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
@@ -140,12 +179,17 @@ export function QueueList({
           break;
         case "r":
           event.preventDefault();
-          reject();
+          setRedrafting(true);
+          setRedraftNote("");
+          break;
+        case "d":
+          event.preventDefault();
+          dismiss();
           break;
         case "e":
           event.preventDefault();
           if (row) {
-            setEditValue(row.draftBody);
+            setEditValue(displayed);
             setEditing(true);
           }
           break;
@@ -161,7 +205,7 @@ export function QueueList({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing, pending, rows.length, row?.draftId]);
+  }, [editing, redrafting, pending, rows.length, row?.draftId, displayed]);
 
   if (rows.length === 0) {
     return (
@@ -176,7 +220,7 @@ export function QueueList({
 
   return (
     <div className="grid gap-4 md:grid-cols-[18rem_1fr]">
-      <ul className="max-h-[70vh] overflow-y-auto rounded-lg border border-neutral-200 bg-white">
+      <ul className="max-h-[70vh] overflow-y-auto rounded-lg border border-neutral-300 bg-white">
         {rows.map((r, i) => (
           <li
             key={r.draftId}
@@ -189,8 +233,9 @@ export function QueueList({
               onClick={() => {
                 setSelected(i);
                 setEditing(false);
+                setRedrafting(false);
               }}
-              className={`w-full border-b border-neutral-100 px-3 py-2.5 text-left last:border-b-0 ${
+              className={`w-full border-b border-neutral-200 px-3 py-2.5 text-left last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-900 ${
                 i === index ? "bg-neutral-900 text-white" : "hover:bg-neutral-50"
               }`}
             >
@@ -220,7 +265,7 @@ export function QueueList({
         ))}
       </ul>
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-5">
+      <section className="rounded-lg border border-neutral-300 bg-white p-5">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="font-medium text-neutral-900">{row.clinicName}</span>
           <Chip tone={row.closeType === "manual" ? "amber" : "neutral"}>
@@ -229,6 +274,7 @@ export function QueueList({
               : "customer books"}
           </Chip>
           {row.killSwitch && <Chip tone="red">kill switch on</Chip>}
+          {row.editedBody && <Chip tone="neutral">edited, not sent</Chip>}
         </div>
 
         <dl className="mt-4 grid grid-cols-[6rem_1fr] gap-x-3 gap-y-1 text-sm">
@@ -250,7 +296,7 @@ export function QueueList({
         <Failures result={row.validationResult} />
 
         <div className="mt-5">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Draft reply
           </h2>
           {editing ? (
@@ -264,46 +310,97 @@ export function QueueList({
               disabled={pending}
             />
           ) : (
-            <p className="mt-2 whitespace-pre-wrap rounded-md bg-neutral-50 p-3 text-sm text-neutral-900">
-              {row.draftBody}
+            <p className="mt-2 whitespace-pre-wrap rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-900">
+              {displayed}
             </p>
           )}
         </div>
 
+        {redrafting && (
+          <div className="mt-4">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              What was wrong
+              <textarea
+                ref={redraftRef}
+                value={redraftNote}
+                disabled={pending}
+                onChange={(e) => setRedraftNote(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    setRedrafting(false);
+                  }
+                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    submitRedraft();
+                  }
+                }}
+                rows={3}
+                placeholder="Short note for the next draft. This is correction context, not a fact to send."
+                className="mt-2 w-full rounded-md border border-neutral-300 p-3 text-sm focus-visible:border-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
+              />
+            </label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Action onClick={submitRedraft} disabled={pending || !redraftNote.trim()}>
+                Generate new draft
+              </Action>
+              <Action
+                onClick={() => setRedrafting(false)}
+                disabled={pending}
+              >
+                Cancel
+              </Action>
+            </div>
+          </div>
+        )}
+
         {note && (
-          <p className="mt-3 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
+          <p className="mt-3 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
             {note}
           </p>
         )}
 
         {message && (
-          <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {message}
           </p>
         )}
 
         <div className="mt-5 flex flex-wrap items-center gap-2">
-          <Action onClick={approve} disabled={pending || editing}>
+          <Action
+            onClick={() => {
+              setRedrafting(true);
+              setRedraftNote("");
+            }}
+            disabled={pending || editing || redrafting}
+          >
+            Redraft <Key>r</Key>
+          </Action>
+          <Action onClick={approve} disabled={pending || editing || redrafting}>
             Approve <Key>a</Key>
           </Action>
           <Action
             onClick={() => {
-              setEditValue(row.draftBody);
+              setEditValue(displayed);
               setEditing(true);
             }}
-            disabled={pending || editing}
+            disabled={pending || editing || redrafting}
           >
             Edit <Key>e</Key>
           </Action>
-          <Action onClick={reject} disabled={pending || editing} tone="danger">
-            Reject <Key>r</Key>
+          <Action
+            onClick={dismiss}
+            disabled={pending || editing || redrafting}
+            tone="danger"
+          >
+            Dismiss <Key>d</Key>
           </Action>
-          <Action onClick={revalidate} disabled={pending || editing}>
+          <Action onClick={revalidate} disabled={pending || editing || redrafting}>
             Re-validate <Key>v</Key>
           </Action>
         </div>
 
-        <footer className="mt-6 flex flex-wrap gap-x-4 gap-y-1 border-t border-neutral-100 pt-3 text-[11px] text-neutral-500">
+        <footer className="mt-6 flex flex-wrap gap-x-4 gap-y-1 border-t border-neutral-200 pt-3 text-[11px] text-neutral-500">
           {SHORTCUTS.map(([key, label]) => (
             <span key={key}>
               <Key>{key}</Key> {label}
@@ -353,7 +450,7 @@ function Editor({
           }
         }}
         rows={5}
-        className="w-full rounded-md border border-neutral-300 p-3 text-sm focus:border-neutral-900 focus:outline-none"
+        className="w-full rounded-md border border-neutral-300 p-3 text-sm focus-visible:border-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
       />
       <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px]">
         <span className={over ? "font-medium text-red-600" : "text-neutral-500"}>
@@ -365,6 +462,9 @@ function Editor({
             {info.offendingChars.join(" ")} forces UCS-2 and halves capacity
           </span>
         )}
+        <span className="text-neutral-500">
+          Ctrl+Enter saves and leaves this pending. Approve is a second step.
+        </span>
       </div>
     </div>
   );
@@ -392,7 +492,7 @@ function Failures({ result }: { result: ValidationResult | null }) {
         <span
           key={code}
           title={details.join("\n")}
-          className="rounded bg-amber-50 px-1.5 py-0.5 font-mono text-[11px] text-amber-800"
+          className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 font-mono text-[11px] text-amber-900"
         >
           {code}
           {details.length > 1 && ` ×${details.length}`}
@@ -410,12 +510,12 @@ function Chip({
   tone?: "neutral" | "amber" | "red";
 }) {
   const tones = {
-    neutral: "bg-neutral-100 text-neutral-700",
-    amber: "bg-amber-100 text-amber-800",
-    red: "bg-red-100 text-red-700",
+    neutral: "border-neutral-200 bg-neutral-100 text-neutral-700",
+    amber: "border-amber-200 bg-amber-100 text-amber-800",
+    red: "border-red-200 bg-red-100 text-red-700",
   };
   return (
-    <span className={`rounded px-1.5 py-0.5 text-[11px] ${tones[tone]}`}>
+    <span className={`rounded border px-1.5 py-0.5 text-[11px] ${tones[tone]}`}>
       {children}
     </span>
   );
@@ -437,7 +537,7 @@ function Action({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm disabled:opacity-40 ${
+      className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 disabled:opacity-40 ${
         tone === "danger"
           ? "border-red-200 text-red-700 hover:bg-red-50"
           : "border-neutral-300 text-neutral-900 hover:bg-neutral-50"

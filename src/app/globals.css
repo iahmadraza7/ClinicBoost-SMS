@@ -1,3 +1,40 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+  Operator tool. Tight type hierarchy and a shared spacing scale so screens
+  look finished without a component library or animation.
+*/
+@layer base {
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  h1 {
+    font-size: 1.375rem;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  h2 {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+
+  :focus-visible {
+    outline: 2px solid #171717;
+    outline-offset: 2px;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+}

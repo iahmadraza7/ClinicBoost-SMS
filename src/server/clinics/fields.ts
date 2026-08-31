@@ -122,6 +122,9 @@ export const clinicFieldsSchema = z.object({
       accent: z.string().optional(),
       heading: z.string().optional(),
       buttonLabel: z.string().optional(),
+      intro: z.string().optional(),
+      preview: z.string().optional(),
+      iconUrl: z.string().optional(),
     })
     .nullable(),
 });
@@ -186,23 +189,52 @@ export function widgetOriginsText(origins: string[]): string {
 }
 
 export function parseWidgetTheme(form: FormData):
-  | { theme: { accent?: string; heading?: string; buttonLabel?: string } | null }
+  | {
+      theme: {
+        accent?: string;
+        heading?: string;
+        buttonLabel?: string;
+        intro?: string;
+        preview?: string;
+        iconUrl?: string;
+      } | null;
+    }
   | { error: string } {
   const accent = String(form.get("widgetAccent") ?? "").trim();
   const heading = String(form.get("widgetHeading") ?? "").trim();
   const buttonLabel = String(form.get("widgetButtonLabel") ?? "").trim();
+  const intro = String(form.get("widgetIntro") ?? "").trim();
+  const preview = String(form.get("widgetPreview") ?? "").trim();
+  const iconUrl = String(form.get("widgetIconUrl") ?? "").trim();
 
   if (accent && !/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(accent)) {
     return { error: "Widget accent must be a hex colour, e.g. #171717" };
   }
 
-  if (!accent && !heading && !buttonLabel) return { theme: null };
+  if (iconUrl) {
+    let parsed: URL;
+    try {
+      parsed = new URL(iconUrl);
+    } catch {
+      return { error: "Widget icon must be a URL, e.g. https://example.com/icon.png" };
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return { error: "Widget icon URL must start with http:// or https://" };
+    }
+  }
+
+  if (!accent && !heading && !buttonLabel && !intro && !preview && !iconUrl) {
+    return { theme: null };
+  }
 
   return {
     theme: {
       ...(accent ? { accent } : {}),
       ...(heading ? { heading: heading.slice(0, 80) } : {}),
       ...(buttonLabel ? { buttonLabel: buttonLabel.slice(0, 40) } : {}),
+      ...(intro ? { intro: intro.slice(0, 240) } : {}),
+      ...(preview ? { preview: preview.slice(0, 80) } : {}),
+      ...(iconUrl ? { iconUrl } : {}),
     },
   };
 }
@@ -310,7 +342,14 @@ export function clinicAuditShape(clinic: {
   voice: string | null;
   voicePending: string | null;
   archivedAt: Date | null;
-  widgetTheme: { accent?: string; heading?: string; buttonLabel?: string } | null;
+  widgetTheme: {
+    accent?: string;
+    heading?: string;
+    buttonLabel?: string;
+    intro?: string;
+    preview?: string;
+    iconUrl?: string;
+  } | null;
 }) {
   return {
     slug: clinic.slug,

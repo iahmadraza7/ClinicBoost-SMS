@@ -47,8 +47,37 @@ const MAX_TOKENS = 1024;
 
 export async function generateDraft(
   ctx: ReplyContext,
+  opts?: { correctionNote?: string },
 ): Promise<DraftGeneration> {
   const anthropic = getClient();
+
+  const system: Array<
+    | { type: "text"; text: string; cache_control?: { type: "ephemeral" } }
+  > = [
+    // Live voice only. Pending voice waits for review, same as a KB edit.
+    { type: "text", text: buildSystemPrompt(ctx.clinic.voice) },
+    {
+      type: "text",
+      text: buildClinicPrompt(ctx),
+      // The clinic's knowledge base is identical on every enquiry for that
+      // clinic, so it is cached. Cache reads cost a tenth of normal input.
+      cache_control: { type: "ephemeral" },
+    },
+  ];
+
+  const note = opts?.correctionNote?.trim();
+  if (note) {
+    // Not cached and not a fact. The validator still requires every sentence
+    // to map to a knowledge base entry.
+    system.push({
+      type: "text",
+      text: `# OPERATOR CORRECTION
+
+The previous draft was wrong. Use this note as correction context only. It is not a clinic fact. Do not cite it as a source_id.
+
+${note}`,
+    });
+  }
 
   let response;
   try {
@@ -56,17 +85,7 @@ export async function generateDraft(
       model: env.ANTHROPIC_MODEL,
       max_tokens: MAX_TOKENS,
       temperature: 0.2,
-      system: [
-        // Live voice only. Pending voice waits for review, same as a KB edit.
-        { type: "text", text: buildSystemPrompt(ctx.clinic.voice) },
-        {
-          type: "text",
-          text: buildClinicPrompt(ctx),
-          // The clinic's knowledge base is identical on every enquiry for that
-          // clinic, so it is cached. Cache reads cost a tenth of normal input.
-          cache_control: { type: "ephemeral" },
-        },
-      ],
+      system,
       messages: buildMessages(ctx),
     });
   } catch (error) {

@@ -36,7 +36,7 @@ export function CsvUpload({ slug }: { slug: string }) {
     plan && plan.created.length + plan.updated.length > 0 && !pending;
 
   return (
-    <section className="mb-8 rounded-lg border border-neutral-200 bg-white p-4">
+    <section className="mb-8 rounded-lg border border-neutral-300 bg-white p-4">
       <h2 className="text-sm font-medium text-neutral-900">
         Booking URLs from a CSV
       </h2>

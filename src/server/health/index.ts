@@ -1,9 +1,19 @@
+import { statfsSync } from "node:fs";
+
 import { formatSydneyDateTime } from "@/lib/time";
 import { env } from "../env";
 import * as repo from "../repo";
 import { getSmsAdapter, MobileMessageAdapter, SmsError } from "../sms";
 import { anthropicFromHttp, anthropicKeyFailure } from "./anthropic";
 import {
+  domainsIsInconclusive,
+  readResendProbeCache,
+  resendFromSendHttp,
+  resendKeyFailure,
+  writeResendProbeCache,
+} from "./resend";
+import {
+  diskCheck,
   domainFromFromAddress,
   lastSendCheck,
   workerCheck,
@@ -11,6 +21,26 @@ import {
 } from "./status";
 
 const FETCH_MS = 8_000;
+
+function checkDisk(): HealthCheck {
+  try {
+    const stats = statfsSync(process.cwd());
+    const block = stats.bsize || (stats as { frsize?: number }).frsize || 0;
+    const total = stats.blocks * block;
+    const available = stats.bavail * block;
+    if (total <= 0) {
+      throw new Error("statfs returned no capacity");
+    }
+    return diskCheck(((total - available) / total) * 100);
+  } catch {
+    return {
+      id: "disk",
+      label: "Disk",
+      tone: "fail",
+      detail: "Could not read disk usage.",
+    };
+  }
+}
 
 async function checkDatabase(): Promise<HealthCheck> {
   try {
@@ -153,15 +183,9 @@ async function checkSms(): Promise<HealthCheck> {
 }
 
 async function checkResend(): Promise<HealthCheck> {
-  const key = env.RESEND_API_KEY;
-  if (!key) {
-    return {
-      id: "resend",
-      label: "Resend",
-      tone: "amber",
-      detail: "RESEND_API_KEY is not set. Notification emails stay on this machine.",
-    };
-  }
+  const key = (env.RESEND_API_KEY ?? "").trim();
+  const early = resendKeyFailure(key === "" ? undefined : key);
+  if (early) return early;
 
   const domain = domainFromFromAddress(env.RESEND_FROM);
   if (!domain) {
@@ -173,9 +197,9 @@ async function checkResend(): Promise<HealthCheck> {
     };
   }
 
-  let response: Response;
+  let domainsResponse: Response | null = null;
   try {
-    response = await fetch("https://api.resend.com/domains", {
+    domainsResponse = await fetch("https://api.resend.com/domains", {
       headers: { Authorization: `Bearer ${key}` },
       signal: AbortSignal.timeout(FETCH_MS),
     });
@@ -188,55 +212,78 @@ async function checkResend(): Promise<HealthCheck> {
     };
   }
 
-  if (response.status === 401 || response.status === 403) {
+  // Sending-access keys get 401 here. That is not a verdict; we send.
+  if (domainsResponse.ok) {
+    const body = (await domainsResponse.json()) as {
+      data?: { name?: string; status?: string }[];
+    };
+    const match = (body.data ?? []).find(
+      (row) => (row.name ?? "").toLowerCase() === domain,
+    );
+    if (match?.status === "verified") {
+      return {
+        id: "resend",
+        label: "Resend",
+        tone: "ok",
+        detail: `${domain} is verified.`,
+      };
+    }
+    if (match) {
+      return {
+        id: "resend",
+        label: "Resend",
+        tone: "amber",
+        detail: `${domain} is not verified (${match.status ?? "unknown"}). Notification emails will not send until the domain is verified on Resend.`,
+      };
+    }
+  } else if (!domainsIsInconclusive(domainsResponse.status)) {
+    // Any domains result other than 401 is unused. Fall through to send.
+  }
+
+  const cached = readResendProbeCache();
+  if (cached) return cached;
+
+  const probed = await probeResendSend(key, domain);
+  writeResendProbeCache(probed);
+  return probed;
+}
+
+/**
+ * Invalid `to` so Resend never queues a message. 422 on that field means the
+ * key reached the send path. Cached so the dashboard does not probe on every
+ * refresh.
+ */
+async function probeResendSend(
+  key: string,
+  domain: string,
+): Promise<HealthCheck> {
+  let response: Response;
+  try {
+    response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        from: env.RESEND_FROM,
+        to: ["health-check-invalid"],
+        subject: "health-check",
+        text: ".",
+      }),
+      signal: AbortSignal.timeout(FETCH_MS),
+    });
+  } catch {
     return {
       id: "resend",
       label: "Resend",
       tone: "fail",
-      detail: "Resend rejected the key.",
+      detail: "Could not reach Resend.",
     };
   }
 
-  if (!response.ok) {
-    return {
-      id: "resend",
-      label: "Resend",
-      tone: "fail",
-      detail: `Resend returned ${response.status}.`,
-    };
-  }
-
-  const body = (await response.json()) as {
-    data?: { name?: string; status?: string }[];
-  };
-  const match = (body.data ?? []).find(
-    (row) => (row.name ?? "").toLowerCase() === domain,
-  );
-
-  if (!match) {
-    return {
-      id: "resend",
-      label: "Resend",
-      tone: "fail",
-      detail: `${domain} is not on this Resend account.`,
-    };
-  }
-
-  if (match.status === "verified") {
-    return {
-      id: "resend",
-      label: "Resend",
-      tone: "ok",
-      detail: `${domain} is verified.`,
-    };
-  }
-
-  return {
-    id: "resend",
-    label: "Resend",
-    tone: "fail",
-    detail: `${domain} is not verified (${match.status ?? "unknown"}).`,
-  };
+  const bodyText = await response.text().catch(() => "");
+  return resendFromSendHttp(response.status, bodyText, domain);
 }
 
 async function checkWorker(): Promise<HealthCheck> {
@@ -284,6 +331,7 @@ async function checkLastSend(): Promise<HealthCheck> {
 }
 
 const ORDER = [
+  "disk",
   "database",
   "anthropic",
   "sms",
@@ -294,6 +342,7 @@ const ORDER = [
 
 export async function gatherHealth(): Promise<HealthCheck[]> {
   const checks = await Promise.all([
+    checkDisk(),
     checkDatabase(),
     checkAnthropic(),
     checkSms(),

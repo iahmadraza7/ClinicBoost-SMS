@@ -4,17 +4,18 @@ import { notFound } from "next/navigation";
 import { DashboardHeader } from "@/app/dashboard-header";
 import { requireOperator } from "@/server/auth";
 import {
-  ANSWER_MODE_CHOICES,
   DO_NOT_ANSWER_GAP,
   KB_CATEGORIES,
   KB_CATEGORY_ORDER,
   hasDoNotAnswerCoverage,
 } from "@/server/kb/fields";
-import type { AnswerMode, KbCategory, KbEntry } from "@/server/db/schema";
+import type { KbCategory } from "@/server/db/schema";
 import * as repo from "@/server/repo";
 
 import { ClinicSectionNav } from "../../clinic-section-nav";
 import { CsvUpload } from "./csv-upload";
+import { KnowledgeList } from "./kb-list";
+import { KnowledgeTransfer } from "./kb-transfer";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ export default async function KnowledgePage({
 
   const entries = await repo.kb.listKbEntries(clinic.id);
   const pending = entries.filter((e) => e.status === "pending_review");
+  const editSuggestions = pending.filter((e) => e.sourceDraftId);
+  const otherPending = pending.filter((e) => !e.sourceDraftId);
   const active = entries.filter((e) => e.status === "active");
   const archived = entries.filter((e) => e.status === "archived");
   const showGap = !hasDoNotAnswerCoverage(entries);
@@ -74,11 +77,12 @@ export default async function KnowledgePage({
         </p>
       ) : (
         <>
+          <KnowledgeTransfer slug={clinic.slug} />
           <CsvUpload slug={clinic.slug} />
           <div className="mb-6 flex justify-end">
             <Link
               href={`/clinics/${clinic.slug}/knowledge/new`}
-              className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm text-white hover:bg-neutral-800"
+              className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm text-white hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
             >
               Add entry
             </Link>
@@ -86,16 +90,34 @@ export default async function KnowledgePage({
         </>
       )}
 
-      {pending.length > 0 && (
+      {editSuggestions.length > 0 && (
+        <p className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {editSuggestions.length} operator edit
+          {editSuggestions.length === 1 ? "" : "s"} waiting.{" "}
+          <Link
+            href={`/clinics/${clinic.slug}/knowledge/pending-edits`}
+            className="underline underline-offset-2"
+          >
+            Review pending edits
+          </Link>
+          .
+        </p>
+      )}
+
+      {otherPending.length > 0 && (
         <section className="mb-10">
-          <h2 className="text-sm font-medium text-amber-900">
+          <h2 className="text-sm font-semibold text-amber-900">
             Waiting for review
           </h2>
           <p className="mt-1 text-sm text-neutral-600">
-            Not usable by the model until you open the entry and review it.
+            Not usable by the model until you review it.
           </p>
           <div className="mt-3">
-            <EntryList slug={clinic.slug} entries={pending} />
+            <KnowledgeList
+              slug={clinic.slug}
+              entries={otherPending}
+              archivedClinic={Boolean(clinic.archivedAt)}
+            />
           </div>
         </section>
       )}
@@ -105,17 +127,21 @@ export default async function KnowledgePage({
         if (group.length === 0) return null;
         return (
           <section key={category} className="mb-8">
-            <h2 className="text-sm font-medium text-neutral-700">
+            <h2 className="text-sm font-semibold text-neutral-800">
               {categoryLabel(category)}
             </h2>
             <div className="mt-3">
-              <EntryList slug={clinic.slug} entries={group} />
+              <KnowledgeList
+                slug={clinic.slug}
+                entries={group}
+                archivedClinic={Boolean(clinic.archivedAt)}
+              />
             </div>
           </section>
         );
       })}
 
-      {active.length === 0 && pending.length === 0 && (
+      {active.length === 0 && otherPending.length === 0 && (
         <p className="rounded-lg border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-600">
           None yet.
           {!clinic.archivedAt && (
@@ -140,7 +166,11 @@ export default async function KnowledgePage({
             The model ignores these. Nothing is deleted.
           </p>
           <div className="mt-3">
-            <EntryList slug={clinic.slug} entries={archived} />
+            <KnowledgeList
+              slug={clinic.slug}
+              entries={archived}
+              archivedClinic={Boolean(clinic.archivedAt)}
+            />
           </div>
         </section>
       )}
@@ -148,40 +178,6 @@ export default async function KnowledgePage({
   );
 }
 
-function EntryList({ slug, entries }: { slug: string; entries: KbEntry[] }) {
-  return (
-    <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-white">
-      {entries.map((entry) => {
-        const mode = ANSWER_MODE_CHOICES.find((c) => c.value === entry.answerMode);
-        return (
-          <li key={entry.id}>
-            <Link
-              href={`/clinics/${slug}/knowledge/${entry.id}`}
-              className="flex flex-col gap-1 px-4 py-3 hover:bg-neutral-50 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
-            >
-              <div>
-                <p className="text-sm font-medium text-neutral-900">
-                  {entry.title}
-                </p>
-                <p className="mt-0.5 font-mono text-xs text-neutral-500">
-                  {entry.entryKey}
-                </p>
-              </div>
-              <p className="text-sm text-neutral-600 sm:text-right">
-                {modeTitle(entry.answerMode, mode?.title)}
-              </p>
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
 function categoryLabel(category: KbCategory): string {
   return KB_CATEGORIES.find((c) => c.value === category)?.label ?? category;
-}
-
-function modeTitle(mode: AnswerMode, title: string | undefined): string {
-  return title ?? mode;
 }

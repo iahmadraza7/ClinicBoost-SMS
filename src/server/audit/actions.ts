@@ -11,12 +11,17 @@ export const AUDIT_ACTIONS = [
   "kb.archived",
   "kb.restored",
   "kb.csv_imported",
+  "kb.imported",
+  "kb.discarded",
   "draft.created",
   "draft.ai_unavailable",
   "draft.revalidated",
   "draft.approved",
   "draft.edited",
   "draft.rejected",
+  "draft.dismissed",
+  "draft.redrafted",
+  "draft.reverted",
   "enquiry.received",
   "enquiry.enqueue_failed",
   "contact.opted_out",
@@ -40,8 +45,16 @@ export function auditDetail(action: string, after: unknown): string {
   if (!after || typeof after !== "object") return "";
   const row = after as Record<string, unknown>;
 
-  if (action === "kb.csv_imported") {
+  if (action === "kb.csv_imported" || action === "kb.imported") {
     return `created ${row.created ?? 0}, updated ${row.updated ?? 0}, skipped ${row.skipped ?? 0}`;
+  }
+
+  if (action === "draft.redrafted" && typeof row.note === "string") {
+    return row.note;
+  }
+
+  if (action === "draft.reverted" && typeof row.restored === "string") {
+    return `restored ${row.restored}`;
   }
 
   if (Array.isArray(row.failures) && row.failures.length > 0) {

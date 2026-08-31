@@ -5,6 +5,9 @@ import {
   lastSendCheck,
   workerCheck,
   WORKER_STALE_MS,
+  diskCheck,
+  DISK_AMBER_PERCENT,
+  DISK_FAIL_PERCENT,
 } from "./status";
 
 describe("workerCheck", () => {
@@ -82,5 +85,32 @@ describe("domainFromFromAddress", () => {
 
   it("rejects a value with no @", () => {
     expect(domainFromFromAddress("notify.clinicboost.com.au")).toBeNull();
+  });
+});
+
+describe("diskCheck", () => {
+  it("is ok below 75 percent", () => {
+    const check = diskCheck(DISK_AMBER_PERCENT - 1);
+    expect(check.tone).toBe("ok");
+    expect(check.detail).toBe("Disk is 74 percent full.");
+  });
+
+  it("is amber at 75 percent", () => {
+    const check = diskCheck(DISK_AMBER_PERCENT);
+    expect(check.tone).toBe("amber");
+    expect(check.detail).toMatch(/75 percent full/);
+    expect(check.detail).toMatch(/docker builder prune -af/);
+  });
+
+  it("is still amber just under 85 percent", () => {
+    expect(diskCheck(DISK_FAIL_PERCENT - 1).tone).toBe("amber");
+  });
+
+  it("is red at 85 percent and names the Postgres outage", () => {
+    const check = diskCheck(DISK_FAIL_PERCENT);
+    expect(check.tone).toBe("fail");
+    expect(check.detail).toMatch(/85 percent full/);
+    expect(check.detail).toMatch(/stops Postgres/i);
+    expect(check.detail).toMatch(/total outage/i);
   });
 });

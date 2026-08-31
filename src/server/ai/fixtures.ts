@@ -71,6 +71,7 @@ export const kbEntries: KbEntry[] = ENTRIES.map((entry, i) => ({
   blockDeflect: entry.blockDeflect ?? null,
   triggerTerms: entry.triggerTerms ?? [],
   source: "imported",
+  sourceDraftId: null,
   createdBy: "seed",
   reviewedBy: null,
   reviewedAt: null,

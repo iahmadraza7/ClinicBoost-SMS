@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
 
 import {
   kbEntries,
@@ -128,6 +128,7 @@ export async function upsertKbEntry(
         blockDeflect: values.blockDeflect ?? null,
         triggerTerms: values.triggerTerms ?? [],
         source: values.source,
+        sourceDraftId: values.sourceDraftId ?? null,
         updatedAt: new Date(),
       },
     })
@@ -147,4 +148,40 @@ export async function updateKbEntry(
     .where(and(eq(kbEntries.clinicId, clinicId), eq(kbEntries.id, entryId)))
     .returning();
   return row ?? null;
+}
+
+export async function getKbEntryBySourceDraft(
+  clinicId: string,
+  sourceDraftId: string,
+  tx?: Executor,
+): Promise<KbEntry | null> {
+  const [row] = await exec(tx)
+    .select()
+    .from(kbEntries)
+    .where(
+      and(
+        eq(kbEntries.clinicId, clinicId),
+        eq(kbEntries.sourceDraftId, sourceDraftId),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+/** Queue-edit suggestions waiting for review. Not the live knowledge base. */
+export async function listPendingEditSuggestions(
+  clinicId: string,
+  tx?: Executor,
+): Promise<KbEntry[]> {
+  return exec(tx)
+    .select()
+    .from(kbEntries)
+    .where(
+      and(
+        eq(kbEntries.clinicId, clinicId),
+        eq(kbEntries.status, "pending_review"),
+        isNotNull(kbEntries.sourceDraftId),
+      ),
+    )
+    .orderBy(asc(kbEntries.createdAt));
 }

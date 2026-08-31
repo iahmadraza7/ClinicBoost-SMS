@@ -69,7 +69,7 @@ export default async function OptOutsPage({
           Nobody has opted out.
         </p>
       ) : (
-        <ul className="mt-4 divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-white">
+        <ul className="mt-4 divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-300 bg-white">
           {contacts.map((contact) => (
             <li key={contact.id} className="px-4 py-3">
               <p className="text-sm font-medium text-neutral-900">

@@ -75,7 +75,7 @@ function ClinicTable({
   }
 
   return (
-    <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-white">
+    <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-300 bg-white">
       {clinics.map((clinic) => {
         const close = CLOSE_TYPE_CHOICES.find((c) => c.value === clinic.closeType);
         return (

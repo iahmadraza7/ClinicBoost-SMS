@@ -36,7 +36,9 @@ export type DraftState =
   | "pending"
   | "approved"
   | "edited"
-  | "rejected";
+  | "rejected"
+  | "dismissed"
+  | "redrafted";
 
 export type Claim = { text: string; source_id: string };
 export type ValidationFailure = { code: string; detail: string };
@@ -48,6 +50,9 @@ export type WidgetTheme = {
   accent?: string;
   heading?: string;
   buttonLabel?: string;
+  intro?: string;
+  preview?: string;
+  iconUrl?: string;
 };
 
 const id = () =>
@@ -149,6 +154,10 @@ export const kbEntries = pgTable(
       .notNull()
       .default(sql`'{}'::text[]`),
     source: text("source").$type<KbSource>().notNull(),
+    // Set when the row was suggested from a queue edit. Null for ordinary entries.
+    sourceDraftId: uuid("source_draft_id").references(() => drafts.id, {
+      onDelete: "set null",
+    }),
     createdBy: text("created_by").notNull(),
     reviewedBy: text("reviewed_by"),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
@@ -269,6 +278,8 @@ export const drafts = pgTable(
     validationResult: jsonb("validation_result").$type<ValidationResult>(),
     state: text("state").$type<DraftState>().notNull().default("pending"),
     editedBody: text("edited_body"),
+    correctionNote: text("correction_note"),
+    redraftOf: uuid("redraft_of"),
     decidedBy: text("decided_by"),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
     notifiedAt: timestamp("notified_at", { withTimezone: true }),

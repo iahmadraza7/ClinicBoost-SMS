@@ -5,10 +5,10 @@ export function ClinicSectionNav({
   current,
 }: {
   slug: string;
-  current: "settings" | "knowledge" | "opt-outs";
+  current: "settings" | "knowledge" | "pending-edits" | "opt-outs";
 }) {
   return (
-    <nav className="mb-6 flex gap-4 border-b border-neutral-200 text-sm">
+    <nav className="mb-6 flex gap-4 border-b border-neutral-300 text-sm">
       <SectionLink href={`/clinics/${slug}`} active={current === "settings"}>
         Settings
       </SectionLink>
@@ -17,6 +17,12 @@ export function ClinicSectionNav({
         active={current === "knowledge"}
       >
         Knowledge base
+      </SectionLink>
+      <SectionLink
+        href={`/clinics/${slug}/knowledge/pending-edits`}
+        active={current === "pending-edits"}
+      >
+        Pending edits
       </SectionLink>
       <SectionLink
         href={`/clinics/${slug}/opt-outs`}

@@ -38,10 +38,11 @@ curl -X POST http://localhost:3000/api/widget/beauty-soiree \
 
 The worker must be running for a draft to appear.
 
-After login, http://localhost:3000/ is the health panel (Claude key, SMS
-credits, Resend domain, worker, last send, database) and this month's usage.
-The audit log is `/audit`. Opt-outs are on each clinic. A queued draft has
-Re-validate when failure chips look stale.
+After login, http://localhost:3000/ is the health panel (disk, Claude key, SMS
+credits, Resend send probe, worker, last send, database) and this month's usage.
+The audit log is `/audit`. Dismiss and redraft can be reverted there. Opt-outs
+are on each clinic. A queued draft has Re-validate when failure chips look
+stale. `r` redrafts, `d` dismisses, Ctrl+Enter saves an edit without sending.
 
 Clinics are at http://localhost:3000/clinics. Adding one copies the Schedule 4
 blocked-terms baseline. The knowledge base for a clinic is at
@@ -146,8 +147,14 @@ setting `sms_number` and clearing that variable, not a rebuild.
 ```bash
 ssh -i ~/.ssh/reflex_sms -o IdentitiesOnly=yes USER@168.144.174.105
 cd /opt/clinicboost
-git pull && docker compose up -d --build
+git pull && docker compose up -d --build && docker builder prune -af
 ```
+
+`docker builder prune -af` is required after a successful build. The space
+goes into the build cache, not leftover images: two rebuilds put 2.2GB
+there and took an 8.7GB disk to 75 percent. `docker image prune -af`
+reclaimed 392kB and did not help. The tradeoff is the next build is slower
+with no cache.
 
 `USER` is the Linux account that has `reflex_sms` in `authorized_keys`. The
 README used to say `ssh reflex`; that alias does not exist until you add a
@@ -163,7 +170,8 @@ onto the host; compose mounts that directory read-only. Then:
 docker compose exec app node dist/seed.cjs
 ```
 
-Watch `df -h /` around every build.
+Watch `df -h /` around every build. The health panel Disk row turns amber
+at 75 percent and red at 85.
 
 ## Tests
 
