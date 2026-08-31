@@ -150,6 +150,9 @@ cd /opt/clinicboost
 git pull && docker compose up -d --build && docker builder prune -af
 ```
 
+Ted will need to sign in again. A leftover session cookie used to loop the
+browser; the app now expires it and lands on `/login`. See the runbook.
+
 `docker builder prune -af` is required after a successful build. The space
 goes into the build cache, not leftover images: two rebuilds put 2.2GB
 there and took an 8.7GB disk to 75 percent. `docker image prune -af`

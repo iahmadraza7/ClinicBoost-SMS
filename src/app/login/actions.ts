@@ -8,6 +8,7 @@ import { authenticate, operatorFromEnv } from "@/server/auth/credentials";
 import { safeReturnTo } from "@/server/auth/paths";
 import {
   COOKIE_NAME,
+  expiredSessionCookie,
   issueSession,
   sessionCookieOptions,
 } from "@/server/auth/session";
@@ -55,10 +56,11 @@ export async function login(
 
 export async function logout(): Promise<void> {
   const jar = await cookies();
-  jar.set(COOKIE_NAME, "", {
-    ...sessionCookieOptions(env.APP_URL.startsWith("https://")),
-    maxAge: 0,
-  });
+  jar.set(
+    COOKIE_NAME,
+    "",
+    expiredSessionCookie(env.APP_URL.startsWith("https://")),
+  );
   redirect("/login");
 }
 

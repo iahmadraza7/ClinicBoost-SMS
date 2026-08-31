@@ -80,6 +80,16 @@ The knowledge page warns when there are no blocked or missing entries.
 Nine of the eleven clinics start that way. Write those entries yourself;
 they are not generated. Beauty Soiree is the one that already has them.
 
+## After a deploy the browser says it is not redirecting properly
+
+The browser still has yesterday's session cookie. The new app cannot read
+it, so it used to bounce between `/` and `/login` until the browser gave
+up. The app now expires that cookie and shows the sign-in form.
+
+Open https://reply.clinicboost.com.au/login and sign in again. This happens
+after every deploy. If an old build is still serving and the page still
+loops, clear cookies for `reply.clinicboost.com.au` and retry.
+
 ## The widget on the landing page does nothing
 
 1. The clinic must not be archived.

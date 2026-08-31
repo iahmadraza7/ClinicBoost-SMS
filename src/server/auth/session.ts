@@ -39,6 +39,26 @@ export function sessionCookieOptions(secure: boolean): CookieOptions {
   };
 }
 
+/**
+ * Same attributes as the live cookie, maxAge 0. The name, path, Secure and
+ * SameSite must match or the browser will keep the stale value and bounce
+ * / ↔ /login after a deploy.
+ */
+export function expiredSessionCookie(secure: boolean): CookieOptions {
+  return {
+    ...sessionCookieOptions(secure),
+    maxAge: 0,
+  };
+}
+
+/** Cookie was sent but is not a live session. */
+export function sessionCookieIsStale(
+  token: string | undefined,
+  session: Session | null,
+): boolean {
+  return Boolean(token) && session === null;
+}
+
 export async function issueSession(
   email: string,
   secret: string,

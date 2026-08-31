@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   COOKIE_NAME,
   SESSION_MAX_AGE_SECONDS,
+  expiredSessionCookie,
   issueSession,
   readSession,
+  sessionCookieIsStale,
+  sessionCookieOptions,
   timingSafeEqual,
 } from "./session";
 
@@ -70,5 +73,27 @@ describe("timingSafeEqual", () => {
 describe("cookie name", () => {
   it("is a dedicated name, not the generic session default", () => {
     expect(COOKIE_NAME).toBe("cb_session");
+  });
+});
+
+describe("stale session cookie", () => {
+  it("is stale only when a cookie was sent and it failed validation", () => {
+    expect(sessionCookieIsStale(undefined, null)).toBe(false);
+    expect(sessionCookieIsStale("", null)).toBe(false);
+    expect(sessionCookieIsStale("not-a-session", null)).toBe(true);
+    expect(
+      sessionCookieIsStale("token", { email: "a@b.c", exp: 1 }),
+    ).toBe(false);
+  });
+
+  it("expires with the same attributes the live cookie used", () => {
+    const live = sessionCookieOptions(true);
+    const expired = expiredSessionCookie(true);
+    expect(expired.maxAge).toBe(0);
+    expect(expired.path).toBe(live.path);
+    expect(expired.httpOnly).toBe(live.httpOnly);
+    expect(expired.sameSite).toBe(live.sameSite);
+    expect(expired.secure).toBe(true);
+    expect(expiredSessionCookie(false).secure).toBe(false);
   });
 });
