@@ -33,6 +33,7 @@ services:
     # Seed reads knowledge-source/converted/beauty-soiree.md from /app.
     volumes:
       - ./knowledge-source/converted:/app/knowledge-source/converted:ro
+      - ./backups:/app/backups:ro
 
   worker:
     build:

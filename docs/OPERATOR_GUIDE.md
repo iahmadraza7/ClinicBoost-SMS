@@ -9,10 +9,10 @@ a deploy you will need to sign in again.
 
 ## The dashboard
 
-The home page is a health check, not a report. Seven rows tell you whether the
-server, database, Claude key, SMS credits, email sending, background worker
-and last outbound SMS are OK. Fix anything red or amber before digging into
-the queue.
+The home page is a health check, not a report. Eight rows tell you whether the
+server, database, backup age, Claude key, SMS credits, email sending,
+background worker and last outbound SMS are OK. Fix anything red or amber
+before digging into the queue.
 
 Below that is this month's usage per clinic: SMS segments in and out, and how
 many AI drafts were generated.
@@ -85,6 +85,13 @@ each; you are not picking a label.
 
 Policy entries, close-mechanics and price-contrast are instructions. Config
 and offer prices are facts.
+
+The model reads instruction text in the prompt even though it cannot cite it.
+It may still paraphrase what an instruction says. Numbers lifted from an
+instruction (e.g. competitor prices in a price-contrast note) are caught today
+because instructions are not in the price corpus. A claim with no numbers,
+written only in an instruction, may not be caught. Do not put customer-facing
+facts in instructions; put them in facts, or accept that the draft may queue.
 
 ### How the entry is used (`answer_mode`)
 

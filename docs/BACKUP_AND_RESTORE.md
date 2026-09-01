@@ -28,13 +28,58 @@ backups/clinicboost-2026-08-31.sql.gz
 ...
 ```
 
-Seven daily files are kept. Older ones are deleted automatically.
+Seven daily files are kept on the server. Older ones are deleted automatically.
 
-The directory is on the same disk as the database. Copy the newest file off
-the server regularly — to your laptop, Google Drive, or another machine. A backup
-that only exists on the server does not help if the server is lost.
+Off-server copies are optional but strongly recommended — see below. A backup
+that only exists on the same disk as the database does not help if the server
+is lost.
 
-Suggested copy (from your laptop, after SSH works):
+### Optional: copy to DigitalOcean Spaces or another bucket
+
+Not enabled by default. Set this up only if you want dumps stored away from the
+droplet. Sydney region (`syd1`) keeps data in Australia.
+
+1. In the DigitalOcean control panel, create a **Space** (e.g. `clinicboost-backups`)
+   in **Sydney**. Create an access key with read/write to that Space only.
+2. On the server, install the AWS CLI (Spaces speaks S3):
+
+   ```bash
+   sudo apt install awscli
+   ```
+
+3. Add to `/opt/clinicboost/.env` (never commit these):
+
+   ```
+   AWS_ACCESS_KEY_ID=your_spaces_key
+   AWS_SECRET_ACCESS_KEY=your_spaces_secret
+   AWS_DEFAULT_REGION=syd1
+   BACKUP_S3_URI=s3://clinicboost-backups/clinicboost
+   ```
+
+4. Upload the newest dump manually:
+
+   ```bash
+   cd /opt/clinicboost
+   FILE="backups/clinicboost-$(date +%Y-%m-%d).sql.gz"
+   aws s3 cp "$FILE" "$BACKUP_S3_URI/" \
+     --endpoint-url https://syd1.digitaloceanspaces.com
+   ```
+
+5. To run upload after every nightly backup, append to the cron line in
+   `deploy/clinicboost-backup.cron`:
+
+   ```bash
+   0 3 * * * root cd /opt/clinicboost && set -a && source .env && set +a && ./scripts/backup-db.sh && aws s3 cp "backups/clinicboost-$(date +\%Y-\%m-\%d).sql.gz" "$BACKUP_S3_URI/" --endpoint-url https://syd1.digitaloceanspaces.com >> /var/log/clinicboost-backup.log 2>&1
+   ```
+
+   Re-install the cron file after editing. Spaces does not rotate for you;
+   delete old objects in the control panel or with
+   `aws s3 rm ... --recursive` when you no longer need them.
+
+**Any S3-compatible bucket** (AWS, Backblaze B2, Wasabi) works the same way:
+change `--endpoint-url` and `BACKUP_S3_URI` to match the provider.
+
+**Copy to your laptop** instead of a bucket:
 
 ```bash
 scp -i ~/.ssh/reflex_sms USER@168.144.174.105:/opt/clinicboost/backups/clinicboost-$(date +%Y-%m-%d).sql.gz .
@@ -164,6 +209,7 @@ volume is corrupted, restore from the newest good backup as above.
 | Task | How often |
 |---|---|
 | Nightly `backup-db.sh` via cron | Automatic |
-| Copy newest `.sql.gz` off server | Weekly, or before risky changes |
+| Backup row on dashboard stays green | Should be under 36 hours old |
+| Copy newest `.sql.gz` off server (optional Spaces upload) | Weekly, or before risky changes |
 | Run `npm run db:restore-test` | After script changes; once after server install |
 | Confirm backup log has no errors | Monthly: `tail /var/log/clinicboost-backup.log` |

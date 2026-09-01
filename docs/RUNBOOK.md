@@ -6,12 +6,13 @@ issue, not code.
 
 ## Something has stopped working
 
-Open https://reply.clinicboost.com.au/ first. The health panel is seven rows:
+Open https://reply.clinicboost.com.au/ first. The health panel is eight rows:
 
 | Row | Green means | If it is not green |
 |---|---|---|
 | Disk | Below 75 percent full | Amber at 75, red at 85. A full disk stops Postgres and looks like a total outage |
 | Database | Postgres answered | The box or the database container is down |
+| Backup | Newest dump under 36 hours old | Amber over 36 hours, red over 72 or no dump at all. A broken nightly cron stays invisible until you need it |
 | Anthropic | The Claude key answered a one-token ping | The key is missing, a placeholder, rejected, or the model name is wrong |
 | Mobile Message | Credits remain | Test mode, no credits, or the API user/password is wrong |
 | Resend | The sending key can send | Missing `re_` key, key rejected, or the from domain is not verified. A sending-only key is correct; the check does not use the domains list |
@@ -19,6 +20,18 @@ Open https://reply.clinicboost.com.au/ first. The health panel is seven rows:
 | Last send | An SMS actually left | Amber until the first real send. Not a failure on its own |
 
 Fix the red or amber row before looking at code.
+
+## The backup row is amber or red
+
+The dashboard reads the newest file in `/opt/clinicboost/backups/`. Nightly
+cron should write one at 03:00.
+
+1. Check the log: `tail -20 /var/log/clinicboost-backup.log`
+2. Run a backup by hand: `cd /opt/clinicboost && ./scripts/backup-db.sh`
+3. If that fails, check disk space and that the `db` container is up.
+4. Confirm cron is installed:
+   `cat /etc/cron.d/clinicboost-backup`
+5. Full procedure in `docs/BACKUP_AND_RESTORE.md`.
 
 ## Backups
 

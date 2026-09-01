@@ -52,7 +52,7 @@ export const ENTRY_KIND_CHOICES: {
     value: "instruction",
     title: "An instruction for how the model behaves",
     consequence:
-      "Goes in as behaviour, not knowledge. The model must not cite this as a source. A draft that cites it always queues, with the reason INSTRUCTION_CITED.",
+      "Goes in as behaviour, not knowledge. The model must not cite this as a source. A draft that cites it always queues, with the reason INSTRUCTION_CITED. The model still sees this text and may paraphrase it; only numbers are reliably caught if they are not also in a fact.",
   },
 ];
 

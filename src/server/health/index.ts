@@ -1,4 +1,5 @@
-import { statfsSync } from "node:fs";
+import { readdirSync, statSync, statfsSync } from "node:fs";
+import { join } from "node:path";
 
 import { formatSydneyDateTime } from "@/lib/time";
 import { env } from "../env";
@@ -13,6 +14,7 @@ import {
   writeResendProbeCache,
 } from "./resend";
 import {
+  backupCheck,
   diskCheck,
   domainFromFromAddress,
   lastSendCheck,
@@ -38,6 +40,57 @@ function checkDisk(): HealthCheck {
       label: "Disk",
       tone: "fail",
       detail: "Could not read disk usage.",
+    };
+  }
+}
+
+const BACKUP_PATTERN = /^clinicboost-.*\.sql\.gz$/;
+
+function backupDir(): string {
+  return process.env.BACKUP_DIR ?? join(process.cwd(), "backups");
+}
+
+function checkBackup(): HealthCheck {
+  const dir = backupDir();
+  try {
+    const names = readdirSync(dir).filter((name) => BACKUP_PATTERN.test(name));
+    if (names.length === 0) {
+      return {
+        id: "backup",
+        label: "Backup",
+        tone: "fail",
+        detail: "No database backup found in backups/. Install the nightly cron or run ./scripts/backup-db.sh.",
+      };
+    }
+
+    let newest: { name: string; mtime: Date } | null = null;
+    for (const name of names) {
+      const mtime = statSync(join(dir, name)).mtime;
+      if (!newest || mtime > newest.mtime) {
+        newest = { name, mtime };
+      }
+    }
+
+    if (!newest) {
+      return {
+        id: "backup",
+        label: "Backup",
+        tone: "fail",
+        detail: "No database backup found in backups/.",
+      };
+    }
+
+    return backupCheck({
+      lastBackupAt: newest.mtime,
+      fileName: newest.name,
+      formattedAt: formatSydneyDateTime(newest.mtime),
+    });
+  } catch {
+    return {
+      id: "backup",
+      label: "Backup",
+      tone: "fail",
+      detail: "Could not read the backups directory.",
     };
   }
 }
@@ -333,6 +386,7 @@ async function checkLastSend(): Promise<HealthCheck> {
 const ORDER = [
   "disk",
   "database",
+  "backup",
   "anthropic",
   "sms",
   "resend",
@@ -344,6 +398,7 @@ export async function gatherHealth(): Promise<HealthCheck[]> {
   const checks = await Promise.all([
     checkDisk(),
     checkDatabase(),
+    Promise.resolve(checkBackup()),
     checkAnthropic(),
     checkSms(),
     checkResend(),

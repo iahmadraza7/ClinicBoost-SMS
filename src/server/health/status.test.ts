@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  backupCheck,
   domainFromFromAddress,
+  formatBackupAge,
   lastSendCheck,
   workerCheck,
   WORKER_STALE_MS,
   diskCheck,
   DISK_AMBER_PERCENT,
   DISK_FAIL_PERCENT,
+  BACKUP_AMBER_MS,
+  BACKUP_FAIL_MS,
 } from "./status";
 
 describe("workerCheck", () => {
@@ -112,5 +116,56 @@ describe("diskCheck", () => {
     expect(check.detail).toMatch(/85 percent full/);
     expect(check.detail).toMatch(/stops Postgres/i);
     expect(check.detail).toMatch(/total outage/i);
+  });
+});
+
+describe("backupCheck", () => {
+  const now = new Date("2026-09-01T12:00:00.000Z");
+
+  it("is ok when the newest dump is under 36 hours old", () => {
+    const check = backupCheck({
+      lastBackupAt: new Date(now.getTime() - BACKUP_AMBER_MS + 60_000),
+      fileName: "clinicboost-2026-09-01.sql.gz",
+      formattedAt: "1 Sep, 3:00 am",
+      now,
+    });
+    expect(check.tone).toBe("ok");
+    expect(check.detail).toMatch(/clinicboost-2026-09-01\.sql\.gz/);
+  });
+
+  it("is amber when the newest dump is over 36 hours old", () => {
+    const check = backupCheck({
+      lastBackupAt: new Date(now.getTime() - BACKUP_AMBER_MS - 1),
+      fileName: "clinicboost-2026-08-30.sql.gz",
+      formattedAt: "30 Aug, 3:00 am",
+      now,
+    });
+    expect(check.tone).toBe("amber");
+    expect(check.detail).toMatch(/Expected a nightly backup/i);
+  });
+
+  it("is red when the newest dump is over 72 hours old", () => {
+    const check = backupCheck({
+      lastBackupAt: new Date(now.getTime() - BACKUP_FAIL_MS - 1),
+      fileName: "clinicboost-2026-08-28.sql.gz",
+      formattedAt: "28 Aug, 3:00 am",
+      now,
+    });
+    expect(check.tone).toBe("fail");
+    expect(check.detail).toMatch(/nightly backup may have stopped/i);
+  });
+});
+
+describe("formatBackupAge", () => {
+  it("uses minutes under one hour", () => {
+    expect(formatBackupAge(5 * 60 * 1000)).toBe("5 minutes");
+  });
+
+  it("uses hours under two days", () => {
+    expect(formatBackupAge(40 * 60 * 60 * 1000)).toBe("40 hours");
+  });
+
+  it("uses days after that", () => {
+    expect(formatBackupAge(3 * 24 * 60 * 60 * 1000)).toBe("3 days");
   });
 });

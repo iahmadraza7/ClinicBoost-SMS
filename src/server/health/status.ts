@@ -116,3 +116,55 @@ export function diskCheck(percentUsed: number): HealthCheck {
     detail: `Disk is ${pct} percent full.`,
   };
 }
+
+/** Nightly cron is 03:00. Amber after 36h, red after 72h catches a silent failure. */
+export const BACKUP_AMBER_MS = 36 * 60 * 60 * 1000;
+export const BACKUP_FAIL_MS = 72 * 60 * 60 * 1000;
+
+export function formatBackupAge(ms: number): string {
+  const hours = Math.floor(ms / (60 * 60 * 1000));
+  if (hours < 1) {
+    const minutes = Math.max(1, Math.floor(ms / (60 * 1000)));
+    return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  }
+  if (hours < 48) {
+    return `${hours} hour${hours === 1 ? "" : "s"}`;
+  }
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"}`;
+}
+
+export function backupCheck(input: {
+  lastBackupAt: Date;
+  fileName: string;
+  formattedAt: string;
+  now?: Date;
+}): HealthCheck {
+  const now = input.now ?? new Date();
+  const age = now.getTime() - input.lastBackupAt.getTime();
+
+  if (age > BACKUP_FAIL_MS) {
+    return {
+      id: "backup",
+      label: "Backup",
+      tone: "fail",
+      detail: `Newest dump is ${formatBackupAge(age)} old (${input.fileName}). The nightly backup may have stopped. See docs/BACKUP_AND_RESTORE.md.`,
+    };
+  }
+
+  if (age > BACKUP_AMBER_MS) {
+    return {
+      id: "backup",
+      label: "Backup",
+      tone: "amber",
+      detail: `Newest dump is ${formatBackupAge(age)} old (${input.fileName}). Expected a nightly backup.`,
+    };
+  }
+
+  return {
+    id: "backup",
+    label: "Backup",
+    tone: "ok",
+    detail: `${input.formattedAt} (${input.fileName}, ${formatBackupAge(age)} ago).`,
+  };
+}

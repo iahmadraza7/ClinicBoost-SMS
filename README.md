@@ -41,8 +41,8 @@ curl -X POST http://localhost:3000/api/widget/beauty-soiree \
 
 The worker must be running for a draft to appear.
 
-After login, http://localhost:3000/ is the health panel (disk, Claude key, SMS
-credits, Resend send probe, worker, last send, database) and this month's usage.
+After login, http://localhost:3000/ is the health panel (disk, database, backup
+age, Claude key, SMS credits, Resend, worker, last send) and this month's usage.
 The audit log is `/audit`. Dismiss and redraft can be reverted there. Opt-outs
 are on each clinic. A queued draft has Re-validate when failure chips look
 stale. `r` redrafts, `d` dismisses, Ctrl+Enter saves an edit without sending.

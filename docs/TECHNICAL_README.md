@@ -149,7 +149,9 @@ docker builder prune -af
 ```
 
 The app container runs migrations before serving traffic (`docker-entrypoint.sh`
-→ `dist/migrate.cjs`). No separate migrate step.
+→ `dist/migrate.cjs`). No separate migrate step. The host `backups/` directory
+is mounted read-only into the app container so the health panel can report
+backup age.
 
 After deploy, the operator signs in again (old session cookies are expired on
 redirect to login).
