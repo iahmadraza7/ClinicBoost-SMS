@@ -15,6 +15,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/server/db/migrate.ts",
     "db:seed": "tsx src/server/seed/index.ts",
+    "db:backup": "bash scripts/backup-db.sh",
+    "db:restore-test": "bash scripts/test-restore.sh",
     "bundle:seed": "esbuild src/server/seed/index.ts --bundle --platform=node --target=node22 --format=cjs --external:pg-native --outfile=dist/seed.cjs",
     "db:studio": "drizzle-kit studio",
     "check:anthropic": "node scripts/check-anthropic.mjs",

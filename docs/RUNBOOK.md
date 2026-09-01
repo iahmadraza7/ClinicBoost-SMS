@@ -20,6 +20,12 @@ Open https://reply.clinicboost.com.au/ first. The health panel is seven rows:
 
 Fix the red or amber row before looking at code.
 
+## Backups
+
+Nightly Postgres dumps run at 03:00 into `/opt/clinicboost/backups/`. Seven
+days are kept on disk. Copy the newest file off the server regularly. Restore
+procedure and a tested scratch restore are in `docs/BACKUP_AND_RESTORE.md`.
+
 ## The disk row is amber or red
 
 The space is Docker's build cache, not leftover images. `docker image prune -af`

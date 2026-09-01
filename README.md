@@ -11,6 +11,9 @@ AI-assisted SMS enquiry and approval system for Australian aesthetic clinics.
 | `docs/SCHEMA.md` | Data model and validation failure codes. |
 | `docs/CURSOR_KICKOFF.md` | Build sequence and prompts. |
 | `docs/RUNBOOK.md` | Symptom, cause, fix. Written for the operator. |
+| `docs/OPERATOR_GUIDE.md` | Adding clinics, knowledge base, thresholds, kill switch, audit. |
+| `docs/TECHNICAL_README.md` | Architecture, validation, deploy, secrets. |
+| `docs/BACKUP_AND_RESTORE.md` | Nightly backup and disaster recovery (tested). |
 | `.cursor/rules/` | Always-on rules Cursor loads automatically. |
 
 ## Setup
@@ -175,6 +178,17 @@ docker compose exec app node dist/seed.cjs
 
 Watch `df -h /` around every build. The health panel Disk row turns amber
 at 75 percent and red at 85.
+
+### Backups
+
+Nightly Postgres dumps with seven-day rotation:
+
+```bash
+sudo cp deploy/clinicboost-backup.cron /etc/cron.d/clinicboost-backup
+```
+
+Manual backup: `./scripts/backup-db.sh` or `npm run db:backup`. Full procedure
+in `docs/BACKUP_AND_RESTORE.md`.
 
 ## Tests
 
