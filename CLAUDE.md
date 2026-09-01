@@ -141,7 +141,8 @@ Every KB entry has a stable id, e.g. `beauty-soiree.hifu-499.duration`.
 Runs in order. Any failure routes to the queue with a reason code.
 
 1. JSON parses and matches the schema
-2. Every `source_id` resolves to a real KB entry for this clinic
+2. Every `source_id` resolves to a real KB **fact** for this clinic.
+   Citing an instruction fails `INSTRUCTION_CITED`.
 3. Every sentence in `draft` is covered by a claim
 4. Currency regex — any price must string-match a price in the KB
 5. Interval regex (`\d+\s*(day|week|month|year)s?`) must match the KB

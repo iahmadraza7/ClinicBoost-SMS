@@ -43,6 +43,7 @@ export function buildClinicPrompt(ctx: ReplyContext): string {
     `# CLOSE BEHAVIOUR\n\n${CLOSE_BEHAVIOUR[clinic.closeType]}`,
     offersSection(ctx.offers),
     doNotAnswerSection(ctx.kbEntries),
+    behaviourSection(ctx.kbEntries),
     knowledgeBaseSection(ctx.kbEntries),
     blockedTermsSection(ctx.blockedTerms),
     ctx.conversation.summary
@@ -100,16 +101,40 @@ These have not been confirmed by the clinic. Never answer one, never soften it i
 ${lines.join("\n\n")}`;
 }
 
-function knowledgeBaseSection(entries: KbEntry[]): string {
-  const answerable = entries.filter((e) => e.answerMode === "answerable");
+/**
+ * Behaviour rules for this clinic. Shown without citable ids so the model
+ * cannot treat them as claim sources. Blocked instructions already appear
+ * under DO NOT ANSWER.
+ */
+function behaviourSection(entries: KbEntry[]): string {
+  const instructions = entries.filter(
+    (e) => e.entryKind === "instruction" && e.answerMode !== "blocked",
+  );
+  if (instructions.length === 0) return "";
 
-  const lines = answerable.map(
+  const lines = instructions.map(
+    (entry) => `- ${entry.title}: ${entry.body}`,
+  );
+
+  return `# CLINIC BEHAVIOUR
+
+These govern how you write. They are not facts you may state to the customer. Do not cite them as source_id. Do not copy competitor prices, intervals or claims from them into the draft unless a knowledge base fact also states that value.
+
+${lines.join("\n\n")}`;
+}
+
+function knowledgeBaseSection(entries: KbEntry[]): string {
+  const facts = entries.filter(
+    (e) => e.answerMode === "answerable" && e.entryKind === "fact",
+  );
+
+  const lines = facts.map(
     (entry) => `- id: ${entry.entryKey}\n  ${entry.title}: ${entry.body}`,
   );
 
   return `# CLINIC KNOWLEDGE BASE
 
-This is everything the clinic has confirmed. It is the only source you may state as fact. Cite the "id" of whatever you use.
+This is everything the clinic has confirmed as fact. It is the only source you may state as fact. Cite the "id" of whatever you use. Never cite an item from CLINIC BEHAVIOUR.
 
 ${lines.join("\n\n")}`;
 }

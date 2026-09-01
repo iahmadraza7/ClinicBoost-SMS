@@ -125,6 +125,7 @@ export async function upsertKbEntry(
         body: values.body,
         status: values.status,
         answerMode: values.answerMode,
+        entryKind: values.entryKind ?? "fact",
         blockDeflect: values.blockDeflect ?? null,
         triggerTerms: values.triggerTerms ?? [],
         source: values.source,

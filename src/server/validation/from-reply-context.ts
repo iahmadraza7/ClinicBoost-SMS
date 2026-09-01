@@ -20,6 +20,7 @@ export function toValidationContext(ctx: ReplyContext): ValidationContext {
       title: e.title,
       body: e.body,
       answerMode: e.answerMode,
+      entryKind: e.entryKind,
       blockDeflect: e.blockDeflect,
       triggerTerms: e.triggerTerms,
     })),

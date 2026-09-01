@@ -4,7 +4,13 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { S4_BASELINE_TERMS } from "../compliance/s4-baseline";
 import * as repo from "../repo";
-import { CLINIC, ENTRIES, OFFERS, SOURCE_ASSERTIONS } from "./beauty-soiree";
+import {
+  CLINIC,
+  ENTRIES,
+  OFFERS,
+  SOURCE_ASSERTIONS,
+  seedEntryKind,
+} from "./beauty-soiree";
 
 const SOURCE_FILE = "knowledge-source/converted/beauty-soiree.md";
 const ACTOR = "seed";
@@ -68,6 +74,7 @@ async function main() {
           body: entry.body,
           status: "active",
           answerMode: entry.answerMode ?? "answerable",
+          entryKind: seedEntryKind(entry),
           blockDeflect: entry.blockDeflect ?? null,
           triggerTerms: entry.triggerTerms ?? [],
           source: "imported",

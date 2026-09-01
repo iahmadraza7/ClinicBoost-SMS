@@ -1,4 +1,4 @@
-import type { AnswerMode, CloseType } from "../db/schema";
+import type { AnswerMode, CloseType, KbEntryKind } from "../db/schema";
 import type { FailureCode } from "./codes";
 
 /**
@@ -12,6 +12,7 @@ export type KbFact = {
   title: string;
   body: string;
   answerMode: AnswerMode;
+  entryKind: KbEntryKind;
   blockDeflect: string | null;
   triggerTerms: string[];
 };

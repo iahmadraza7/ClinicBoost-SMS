@@ -2,6 +2,7 @@ import type {
   AnswerMode,
   KbCategory,
   KbEntry,
+  KbEntryKind,
   KbSource,
   KbStatus,
 } from "../db/schema";
@@ -22,6 +23,7 @@ const ANSWER_MODES = new Set<AnswerMode>([
   "blocked",
   "missing",
 ]);
+const ENTRY_KINDS = new Set<KbEntryKind>(["fact", "instruction"]);
 const SOURCES = new Set<KbSource>([
   "imported",
   "operator_edit",
@@ -35,6 +37,7 @@ export type KbTransferRow = {
   body: string;
   status: KbStatus;
   answer_mode: AnswerMode;
+  entry_kind: KbEntryKind;
   block_deflect: string | null;
   trigger_terms: string[];
   source: KbSource;
@@ -61,6 +64,7 @@ const HEADERS = [
   "body",
   "status",
   "answer_mode",
+  "entry_kind",
   "block_deflect",
   "trigger_terms",
   "source",
@@ -83,6 +87,7 @@ export function toTransferRow(entry: KbEntry): KbTransferRow {
     body: entry.body,
     status: entry.status,
     answer_mode: entry.answerMode,
+    entry_kind: entry.entryKind,
     block_deflect: entry.blockDeflect,
     trigger_terms: [...entry.triggerTerms],
     source: entry.source,
@@ -107,6 +112,7 @@ export function exportKbCsv(entries: KbEntry[]): string {
         row.body,
         row.status,
         row.answer_mode,
+        row.entry_kind,
         row.block_deflect ?? "",
         row.trigger_terms.join("|"),
         row.source,
@@ -138,6 +144,7 @@ export function transferEquals(
     incoming.body === existing.body &&
     incoming.status === existing.status &&
     incoming.answer_mode === existing.answerMode &&
+    incoming.entry_kind === existing.entryKind &&
     (incoming.block_deflect ?? null) === (existing.blockDeflect ?? null) &&
     sameTerms(incoming.trigger_terms, existing.triggerTerms) &&
     incoming.source === existing.source &&
@@ -188,6 +195,10 @@ function parseTransferRow(
   );
   if (typeof answer === "object") return { ...answer, line };
 
+  const kindRaw = String(raw.entry_kind ?? "").trim() || "fact";
+  const kind = asEnum(kindRaw, ENTRY_KINDS, "entry_kind");
+  if (typeof kind === "object") return { ...kind, line };
+
   const statusRaw = String(raw.status ?? "pending_review").trim() || "pending_review";
   const status = asEnum(statusRaw, STATUSES, "status");
   if (typeof status === "object") return { ...status, line };
@@ -212,6 +223,7 @@ function parseTransferRow(
     body,
     status,
     answer_mode: answer,
+    entry_kind: kind,
     block_deflect: deflect === "" ? null : deflect,
     trigger_terms: parseTriggerCell(raw.trigger_terms),
     source,

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { DashboardHeader } from "@/app/dashboard-header";
 import { formatSydneyDateTime } from "@/lib/time";
 import { requireOperator } from "@/server/auth";
-import { ANSWER_MODE_CHOICES } from "@/server/kb/fields";
+import { ANSWER_MODE_CHOICES, ENTRY_KIND_CHOICES } from "@/server/kb/fields";
 import * as repo from "@/server/repo";
 
 import { ClinicSectionNav } from "../../../clinic-section-nav";
@@ -85,6 +85,11 @@ export default async function KbEntryPage({
             {entry.category}
           </p>
           <p>
+            <span className="font-medium text-neutral-900">What it is. </span>
+            {ENTRY_KIND_CHOICES.find((c) => c.value === entry.entryKind)
+              ?.title ?? entry.entryKind}
+          </p>
+          <p>
             <span className="font-medium text-neutral-900">How it is used. </span>
             {ANSWER_MODE_CHOICES.find((c) => c.value === entry.answerMode)
               ?.title ?? entry.answerMode}
@@ -113,6 +118,7 @@ export default async function KbEntryPage({
               title: entry.title,
               body: entry.body,
               answerMode: entry.answerMode,
+              entryKind: entry.entryKind,
               blockDeflect: entry.blockDeflect,
               triggerTerms: entry.triggerTerms,
               status: entry.status,

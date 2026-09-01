@@ -75,7 +75,7 @@ Return one JSON object and nothing else. No prose before it, no explanation afte
 Rules for the fields:
 
 - "claims" must cover every sentence of "draft" that states a fact, including the sentence that gives the booking link. Copy the whole sentence into "text", from its first word to its final full stop, exactly as it appears in "draft". Do not shorten it and do not quote only the interesting part. A greeting does not need a claim.
-- "source_id" must be an entry id copied exactly from the knowledge base below. Never invent one, never adapt one, never cite another clinic's.
+- "source_id" must be an entry id copied exactly from the knowledge base below. Never invent one, never adapt one, never cite another clinic's. Never cite a CLINIC BEHAVIOUR item; those are instructions, not facts.
 - "matched_offer_id" must be copied exactly from OFFERS, or be null.
 - "self_confidence" is 0 to 100. It is one signal among many and it does not decide anything on its own, so report it honestly rather than optimistically.
 - Set "unanswered": true when the knowledge base does not cover the question. Still provide a short holding "draft" for the human to work from.`;

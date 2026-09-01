@@ -108,6 +108,43 @@ describe("SOURCE_UNKNOWN", () => {
   });
 });
 
+describe("INSTRUCTION_CITED", () => {
+  it("fails a draft that cites price-contrast as a fact source", () => {
+    const draft = cleanDraft({
+      draft:
+        "Hey Sarah. Budget clinics sell 3-session packages at $299 each. It is a 60-minute treatment, one session.",
+      claims: [
+        {
+          text: "Budget clinics sell 3-session packages at $299 each.",
+          source_id: "beauty-soiree.hifu-499.price-contrast",
+        },
+        CLEAN_DRAFT.claims[1],
+      ],
+    });
+
+    const result = validateDraft(draft, makeContext());
+    expect(result.passed).toBe(false);
+    expect(result.failures.map((f) => f.code)).toContain("INSTRUCTION_CITED");
+    expect(result.failures.map((f) => f.code)).not.toContain("SOURCE_UNKNOWN");
+  });
+
+  it("does not treat competitor prices in an instruction as verified facts", () => {
+    const draft = cleanDraft({
+      draft:
+        "Hey Sarah. Budget clinics sell packages at $299 each. It is a 60-minute treatment, one session.",
+      claims: [
+        {
+          text: "Budget clinics sell packages at $299 each.",
+          source_id: "beauty-soiree.hifu-499.price",
+        },
+        CLEAN_DRAFT.claims[1],
+      ],
+    });
+
+    expect(codes(draft)).toContain("PRICE_UNVERIFIED");
+  });
+});
+
 describe("SENTENCE_UNCOVERED", () => {
   it("fails a factual sentence with no claim behind it", () => {
     const draft = cleanDraft({

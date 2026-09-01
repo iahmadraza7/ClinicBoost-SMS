@@ -21,6 +21,7 @@ export type CloseType = "link_only" | "manual";
 export type KbCategory = "config" | "offer" | "policy" | "faq" | "booking";
 export type KbStatus = "active" | "pending_review" | "archived";
 export type AnswerMode = "answerable" | "blocked" | "missing";
+export type KbEntryKind = "fact" | "instruction";
 export type KbSource = "imported" | "operator_edit" | "operator_answer";
 export type ConsentSource = "widget" | "sms_inbound" | "operator";
 export type SourceType = "widget" | "sms_inbound" | "missed_call" | "operator";
@@ -145,6 +146,12 @@ export const kbEntries = pgTable(
       .$type<AnswerMode>()
       .notNull()
       .default("answerable"),
+    // `fact` may be cited as a claim source. `instruction` governs behaviour
+    // and is never a valid source_id. Existing rows default to fact.
+    entryKind: text("entry_kind")
+      .$type<KbEntryKind>()
+      .notNull()
+      .default("fact"),
     blockDeflect: text("block_deflect"),
     // Words that mean an enquiry or a draft has touched this entry's topic.
     // A `blocked` entry needs these: "do not answer whether HIFU hurts" is only

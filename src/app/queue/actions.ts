@@ -412,6 +412,7 @@ async function upsertEditSuggestion(
       title: `Operator edit: ${asked}`,
       body,
       answerMode: "answerable",
+      entryKind: "fact",
       sourceDraftId: draft.id,
       createdBy: actor,
       ...operatorSaveMeta(),

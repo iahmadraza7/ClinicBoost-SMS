@@ -1,4 +1,4 @@
-import type { AnswerMode, KbCategory } from "../db/schema";
+import type { AnswerMode, KbCategory, KbEntryKind } from "../db/schema";
 
 /**
  * Beauty Soiree, transcribed from knowledge-source/converted/beauty-soiree.md.
@@ -60,6 +60,11 @@ export type SeedEntry = {
   title: string;
   body: string;
   answerMode?: AnswerMode;
+  /**
+   * `fact` (default) may be cited. `instruction` is behaviour. Policy
+   * entries and price-contrast are instructions even when answerable.
+   */
+  entryKind?: KbEntryKind;
   blockDeflect?: string;
   /**
    * How the validator recognises that this topic has come up. Drawn from the
@@ -68,6 +73,18 @@ export type SeedEntry = {
    */
   triggerTerms?: string[];
 };
+
+/**
+ * Policy is behaviour. price-contrast is stored under an offer but is an
+ * instruction for how to talk about competitors, not a fact the customer
+ * may be told.
+ */
+export function seedEntryKind(entry: SeedEntry): KbEntryKind {
+  if (entry.entryKind) return entry.entryKind;
+  if (entry.category === "policy") return "instruction";
+  if (entry.entryKey.endsWith(".price-contrast")) return "instruction";
+  return "fact";
+}
 
 const DEFLECT_TO_LISA =
   "That one is best answered by Lisa directly. Text or call her on 0405 087 121 and she will sort you out, or it gets covered at your appointment.";
@@ -177,6 +194,7 @@ export const ENTRIES: SeedEntry[] = [
     entryKey: "beauty-soiree.hifu-499.price-contrast",
     category: "offer",
     offerKey: "hifu-499",
+    entryKind: "instruction",
     title: "HIFU price objection contrast",
     body:
       "Contrast point (use sparingly, softened): budget clinics run single-depth devices at 1.5mm max in 20-minute appointments and sell 3-session packages at ~$299 each ($897 total). Frame as \"budget HIFU\" or \"single-depth\", never as a scam",

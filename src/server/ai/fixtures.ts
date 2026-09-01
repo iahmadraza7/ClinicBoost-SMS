@@ -10,7 +10,7 @@ import type {
   Offer,
 } from "../db/schema";
 import type { ReplyContext } from "../reply-context";
-import { CLINIC, ENTRIES, OFFERS } from "../seed/beauty-soiree";
+import { CLINIC, ENTRIES, OFFERS, seedEntryKind } from "../seed/beauty-soiree";
 
 /** Real Beauty Soiree content, shaped as database rows, with no database. */
 
@@ -68,6 +68,7 @@ export const kbEntries: KbEntry[] = ENTRIES.map((entry, i) => ({
   body: entry.body,
   status: "active",
   answerMode: entry.answerMode ?? "answerable",
+  entryKind: seedEntryKind(entry),
   blockDeflect: entry.blockDeflect ?? null,
   triggerTerms: entry.triggerTerms ?? [],
   source: "imported",

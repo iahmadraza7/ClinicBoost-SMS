@@ -5,6 +5,7 @@
 export const FAILURE_CODES = {
   SCHEMA_INVALID: "model output did not parse",
   SOURCE_UNKNOWN: "cited a source_id that does not exist for this clinic",
+  INSTRUCTION_CITED: "cited a behaviour entry as if it were a fact",
   SENTENCE_UNCOVERED: "a draft sentence had no claim",
   PRICE_UNVERIFIED: "price not string-matched in KB",
   INTERVAL_UNVERIFIED: "treatment interval not in KB",

@@ -60,8 +60,9 @@ are refused on save.
 
 ## kb_entries
 
-The knowledge base. One row per addressable fact. `entry_key` is what the model
-cites in `claims[].source_id`.
+The knowledge base. One row per addressable fact or instruction. `entry_key`
+is what the model cites in `claims[].source_id`. Only `fact` entries are
+valid citations.
 
 ```
 id                  uuid pk
@@ -73,6 +74,7 @@ title               text
 body                text
 status              text        -- active | pending_review | archived
 answer_mode         text        -- answerable | blocked | missing
+entry_kind          text        -- fact | instruction
 block_deflect       text nullable  -- what to say instead when blocked
 trigger_terms       text[] not null default '{}'
 source              text        -- imported | operator_edit | operator_answer
@@ -85,13 +87,24 @@ created_at, updated_at
 unique (clinic_id, entry_key)
 ```
 
-`answer_mode` is the important column. The editor makes the operator pick the
-behaviour, not a label:
+`answer_mode` and `entry_kind` are separate. The editor makes the operator
+pick each consequence, not a label.
 
-- `answerable` — can be cited and sent
+`answer_mode`:
+
+- `answerable` — live once reviewed
 - `blocked` — never attempt, always queue, deflect with `block_deflect`
 - `missing` — known gap. Flag as unanswerable, store the operator's later
   answer.
+
+`entry_kind`:
+
+- `fact` — goes in the prompt as knowledge. Valid as a `claims[].source_id`.
+- `instruction` — goes in the prompt as behaviour. Never a valid claim
+  source. Citing one fails `INSTRUCTION_CITED`.
+
+Policy entries, close-mechanics, and price-contrast are instructions.
+Config and offer facts stay facts.
 
 Operator create and edit always land as `pending_review`. The model only
 reads `active` entries (`listKbEntries(..., { activeOnly: true })`). Review
@@ -262,6 +275,7 @@ Use these strings. The runbook and dashboard both reference them.
 ```
 SCHEMA_INVALID          model output did not parse
 SOURCE_UNKNOWN          cited a source_id that does not exist for this clinic
+INSTRUCTION_CITED       cited a behaviour entry as if it were a fact
 SENTENCE_UNCOVERED      a draft sentence had no claim
 PRICE_UNVERIFIED        price not string-matched in KB
 INTERVAL_UNVERIFIED     treatment interval not in KB

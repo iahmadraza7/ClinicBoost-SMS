@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 
-import { ANSWER_MODE_CHOICES } from "@/server/kb/fields";
-import type { AnswerMode, KbStatus } from "@/server/db/schema";
+import { ANSWER_MODE_CHOICES, ENTRY_KIND_CHOICES } from "@/server/kb/fields";
+import type { AnswerMode, KbEntryKind, KbStatus } from "@/server/db/schema";
 
 import { updateKbEntryBody } from "./actions";
 
@@ -14,6 +14,7 @@ export type KnowledgeListEntry = {
   title: string;
   body: string;
   answerMode: AnswerMode;
+  entryKind: KbEntryKind;
   status: KbStatus;
 };
 
@@ -81,6 +82,9 @@ export function KnowledgeList({
       ) : (
         <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-300 bg-white">
           {filtered.map((entry) => {
+            const kind = ENTRY_KIND_CHOICES.find(
+              (c) => c.value === entry.entryKind,
+            );
             const mode = ANSWER_MODE_CHOICES.find(
               (c) => c.value === entry.answerMode,
             );
@@ -99,6 +103,8 @@ export function KnowledgeList({
                     </p>
                   </div>
                   <p className="text-sm text-neutral-600 sm:text-right">
+                    {kindTitle(entry.entryKind, kind?.title)}
+                    {" · "}
                     {modeTitle(entry.answerMode, mode?.title)}
                   </p>
                 </div>
@@ -164,6 +170,10 @@ export function KnowledgeList({
       )}
     </div>
   );
+}
+
+function kindTitle(kind: KbEntryKind, title: string | undefined): string {
+  return title ?? kind;
 }
 
 function modeTitle(mode: AnswerMode, title: string | undefined): string {

@@ -1,5 +1,5 @@
 import { S4_BASELINE_TERMS } from "../compliance/s4-baseline";
-import { CLINIC, ENTRIES, OFFERS } from "../seed/beauty-soiree";
+import { CLINIC, ENTRIES, OFFERS, seedEntryKind } from "../seed/beauty-soiree";
 import type { KbFact, OfferFact, ValidationContext } from "./types";
 
 /**
@@ -18,6 +18,7 @@ export const kbFacts: KbFact[] = ENTRIES.map((e) => ({
   title: e.title,
   body: e.body,
   answerMode: e.answerMode ?? "answerable",
+  entryKind: seedEntryKind(e),
   blockDeflect: e.blockDeflect ?? null,
   triggerTerms: e.triggerTerms ?? [],
 }));

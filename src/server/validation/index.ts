@@ -116,13 +116,21 @@ function checkContext(ctx: ValidationContext, add: Add) {
   }
 }
 
-/** Every source_id must resolve to an entry belonging to this clinic. */
+/** Every source_id must resolve to a fact belonging to this clinic. */
 function checkCitations(output: ModelOutput, kb: KbIndex, add: Add) {
   for (const claim of output.claims) {
-    if (!kb.byKey.has(claim.source_id)) {
+    const entry = kb.byKey.get(claim.source_id);
+    if (!entry) {
       add(
         "SOURCE_UNKNOWN",
         `claim cites "${claim.source_id}", which is not a knowledge base entry for this clinic`,
+      );
+      continue;
+    }
+    if (entry.entryKind === "instruction") {
+      add(
+        "INSTRUCTION_CITED",
+        `claim cites "${claim.source_id}", which is an instruction, not a fact the customer may be told`,
       );
     }
   }
@@ -220,6 +228,7 @@ function checkContraindications(output: ModelOutput, kb: KbIndex, add: Add) {
 }
 
 function coversSuitability(entry: KbFact): boolean {
+  if (entry.entryKind === "instruction") return false;
   const haystack = `${entry.entryKey} ${entry.title} ${entry.body}`.toLowerCase();
   return CONTRA_TERMS.some((term) => haystack.includes(term));
 }

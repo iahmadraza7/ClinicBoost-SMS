@@ -4,6 +4,7 @@ import { S4_BASELINE_TERMS } from "../compliance/s4-baseline";
 import {
   ANSWER_MODE_CHOICES,
   DO_NOT_ANSWER_GAP,
+  ENTRY_KIND_CHOICES,
   OPERATOR_SAVE_STATUS,
   createKbFieldsFromForm,
   entryKeySchema,
@@ -45,6 +46,31 @@ describe("ANSWER_MODE_CHOICES", () => {
   });
 });
 
+describe("ENTRY_KIND_CHOICES", () => {
+  it("spells out the consequence of each choice, not just a label", () => {
+    const byValue = Object.fromEntries(
+      ENTRY_KIND_CHOICES.map((c) => [c.value, c]),
+    );
+
+    expect(byValue.fact.title.toLowerCase()).not.toBe("fact");
+    expect(byValue.instruction.title.toLowerCase()).not.toBe("instruction");
+
+    const fact = `${byValue.fact.title} ${byValue.fact.consequence}`.toLowerCase();
+    const instruction = `${byValue.instruction.title} ${byValue.instruction.consequence}`.toLowerCase();
+
+    expect(fact).toContain("cite");
+    expect(fact).toContain("auto-send");
+    expect(instruction).toContain("behaviour");
+    expect(instruction).toContain("instruction_cited");
+  });
+
+  it("covers the two stored values and nothing else", () => {
+    expect(ENTRY_KIND_CHOICES.map((c) => c.value).sort()).toEqual(
+      ["fact", "instruction"].sort(),
+    );
+  });
+});
+
 describe("operatorSaveMeta", () => {
   it("lands an operator write as pending_review, never active", () => {
     const meta = operatorSaveMeta();
@@ -78,6 +104,7 @@ const answerable = {
   body: "The appointment is about 60 minutes.",
   category: "offer",
   answerMode: "answerable",
+  entryKind: "fact",
   blockDeflect: "",
   triggerTerms: "",
   entryKey: "beauty-soiree.hifu-499.duration",

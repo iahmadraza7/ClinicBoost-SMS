@@ -4,10 +4,11 @@ import { useActionState, useState } from "react";
 
 import {
   ANSWER_MODE_CHOICES,
+  ENTRY_KIND_CHOICES,
   KB_CATEGORIES,
   triggerTermsText,
 } from "@/server/kb/fields";
-import type { AnswerMode, KbCategory } from "@/server/db/schema";
+import type { AnswerMode, KbCategory, KbEntryKind } from "@/server/db/schema";
 import {
   createKbEntry,
   updateKbEntry,
@@ -21,6 +22,7 @@ export type KbFormValues = {
   title: string;
   body: string;
   answerMode: AnswerMode;
+  entryKind: KbEntryKind;
   blockDeflect: string | null;
   triggerTerms: string[];
   status: string;
@@ -102,6 +104,40 @@ export function KbForm({
 
       <fieldset>
         <legend className="text-sm font-medium text-neutral-900">
+          What this entry is
+        </legend>
+        <p className="mt-0.5 text-sm text-neutral-600">
+          Facts may be stated to a customer. Instructions tell the model how
+          to behave and must never be cited as a source.
+        </p>
+        <div className="mt-3 space-y-2">
+          {ENTRY_KIND_CHOICES.map((choice) => (
+            <label
+              key={choice.value}
+              className="flex cursor-pointer gap-3 rounded-lg border border-neutral-200 bg-white p-4"
+            >
+              <input
+                type="radio"
+                name="entryKind"
+                value={choice.value}
+                defaultChecked={(entry?.entryKind ?? "fact") === choice.value}
+                className="mt-1"
+              />
+              <span>
+                <span className="block text-sm font-medium text-neutral-900">
+                  {choice.title}
+                </span>
+                <span className="mt-1 block text-sm text-neutral-600">
+                  {choice.consequence}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="text-sm font-medium text-neutral-900">
           How this entry is used
         </legend>
         <p className="mt-0.5 text-sm text-neutral-600">
@@ -139,7 +175,7 @@ export function KbForm({
 
       <Field
         label="Body"
-        hint="The fact itself. Checked against this clinic's blocked terms on save."
+        hint="The text itself. Checked against this clinic's blocked terms on save."
       >
         <textarea
           name="body"

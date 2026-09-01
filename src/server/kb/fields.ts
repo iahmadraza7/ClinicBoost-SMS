@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { AnswerMode, KbCategory, KbEntry } from "../db/schema";
+import type { AnswerMode, KbCategory, KbEntry, KbEntryKind } from "../db/schema";
 import { findBlockedTerms } from "../validation/blocked-terms";
 
 /**
@@ -30,6 +30,29 @@ export const ANSWER_MODE_CHOICES: {
     title: "Known gap, flag as unanswerable",
     consequence:
       "This is absent from the knowledge base on purpose. The model must not guess. The enquiry is flagged unanswerable and the operator's later answer is stored.",
+  },
+];
+
+/**
+ * Separate from answer_mode. A fact may be cited. An instruction governs
+ * behaviour and is never a valid claim source.
+ */
+export const ENTRY_KIND_CHOICES: {
+  value: KbEntryKind;
+  title: string;
+  consequence: string;
+}[] = [
+  {
+    value: "fact",
+    title: "A fact the model may state",
+    consequence:
+      "Goes into the knowledge base. The model may cite this as a source. A fully grounded draft that cites it may auto-send.",
+  },
+  {
+    value: "instruction",
+    title: "An instruction for how the model behaves",
+    consequence:
+      "Goes in as behaviour, not knowledge. The model must not cite this as a source. A draft that cites it always queues, with the reason INSTRUCTION_CITED.",
   },
 ];
 
@@ -68,6 +91,9 @@ const kbFieldsObject = z.object({
   }),
   answerMode: z.enum(["answerable", "blocked", "missing"], {
     message: "Pick how this entry is used",
+  }),
+  entryKind: z.enum(["fact", "instruction"], {
+    message: "Pick whether this is a fact or an instruction",
   }),
   blockDeflect: z
     .string()
@@ -146,6 +172,7 @@ function fieldsFromValues(values: {
   body: unknown;
   category: unknown;
   answerMode: unknown;
+  entryKind: unknown;
   blockDeflect: unknown;
   triggerTerms: string[];
 }) {
@@ -176,6 +203,7 @@ export function kbFieldsFromForm(form: FormData): {
     body: form.get("body") ?? "",
     category: form.get("category"),
     answerMode: form.get("answerMode"),
+    entryKind: form.get("entryKind"),
     blockDeflect: form.get("blockDeflect") ?? "",
     triggerTerms: parseTriggerTerms(String(form.get("triggerTerms") ?? "")),
   });
@@ -240,6 +268,7 @@ export function kbAuditShape(entry: Pick<
   | "body"
   | "status"
   | "answerMode"
+  | "entryKind"
   | "blockDeflect"
   | "triggerTerms"
   | "source"
@@ -253,6 +282,7 @@ export function kbAuditShape(entry: Pick<
     body: entry.body,
     status: entry.status,
     answer_mode: entry.answerMode,
+    entry_kind: entry.entryKind,
     block_deflect: entry.blockDeflect,
     trigger_terms: entry.triggerTerms,
     source: entry.source,

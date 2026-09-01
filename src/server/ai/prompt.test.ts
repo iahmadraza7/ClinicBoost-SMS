@@ -9,19 +9,41 @@ import {
 import { buildClinicPrompt, buildMessages } from "./prompt";
 
 describe("the whole knowledge base goes in", () => {
-  it("includes every answerable entry with its citable id", () => {
+  it("includes every answerable fact with its citable id", () => {
     const ctx = makeReplyContext();
     const prompt = buildClinicPrompt(ctx);
 
-    const answerable = ctx.kbEntries.filter(
-      (e) => e.answerMode === "answerable",
+    const facts = ctx.kbEntries.filter(
+      (e) => e.answerMode === "answerable" && e.entryKind === "fact",
     );
-    expect(answerable.length).toBeGreaterThan(20);
+    expect(facts.length).toBeGreaterThan(20);
 
-    for (const entry of answerable) {
+    for (const entry of facts) {
       expect(prompt, entry.entryKey).toContain(entry.entryKey);
       expect(prompt, entry.entryKey).toContain(entry.body);
     }
+  });
+
+  it("puts instructions in behaviour, not as citable knowledge", () => {
+    const ctx = makeReplyContext();
+    const prompt = buildClinicPrompt(ctx);
+    const kbAt = prompt.indexOf("# CLINIC KNOWLEDGE BASE");
+    const behaviourAt = prompt.indexOf("# CLINIC BEHAVIOUR");
+    expect(behaviourAt).toBeGreaterThan(-1);
+    expect(behaviourAt).toBeLessThan(kbAt);
+
+    const kbSection = prompt.slice(kbAt);
+    const instructions = ctx.kbEntries.filter(
+      (e) => e.entryKind === "instruction" && e.answerMode !== "blocked",
+    );
+    expect(instructions.length).toBeGreaterThan(0);
+
+    for (const entry of instructions) {
+      expect(prompt, entry.entryKey).toContain(entry.body);
+      expect(kbSection, entry.entryKey).not.toContain(entry.entryKey);
+    }
+
+    expect(kbSection).not.toContain("beauty-soiree.hifu-499.price-contrast");
   });
 
   it("carries prices and booking links verbatim, so the validator can match them", () => {

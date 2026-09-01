@@ -43,6 +43,13 @@
       "when": 1787900000000,
       "tag": "0005_queue_kb_links",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788000000000,
+      "tag": "0006_kb_entry_kind",
+      "breakpoints": true
     }
   ]
 }

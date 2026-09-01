@@ -1,10 +1,10 @@
 import type { KbFact, OfferFact } from "./types";
 
 /**
- * Everything this clinic is allowed to say, flattened into one searchable
- * blob. The checks below match against this rather than against individual
- * entries, because a price or a link is verified the same way wherever it
- * appears in the knowledge base.
+ * Everything this clinic is allowed to state as fact, flattened into one
+ * searchable blob. Instruction entries govern behaviour; they are indexed by
+ * key so a citation can fail INSTRUCTION_CITED, but their bodies are not
+ * matched as prices, intervals or URLs.
  */
 export type KbIndex = {
   byKey: Map<string, KbFact>;
@@ -24,6 +24,7 @@ export function buildKbIndex(
   const pieces: string[] = [];
 
   for (const entry of entries) {
+    if (entry.entryKind === "instruction") continue;
     pieces.push(entry.title, entry.body);
     if (entry.blockDeflect) pieces.push(entry.blockDeflect);
   }

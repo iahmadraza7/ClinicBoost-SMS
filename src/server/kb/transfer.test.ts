@@ -21,6 +21,7 @@ function entry(overrides: Partial<KbEntry> = {}): KbEntry {
     body: "About 60 minutes.",
     status: "active",
     answerMode: "answerable",
+    entryKind: "fact",
     blockDeflect: null,
     triggerTerms: ["duration", "how long"],
     source: "imported",
@@ -74,6 +75,15 @@ describe("knowledge base transfer", () => {
     ]);
     expect(plan.skipped[0].reason).toBe("unchanged");
     expect(plan.skipped[1].reason).toMatch(/blocked term/);
+  });
+
+  it("round-trips entry_kind", () => {
+    const rows = [entry({ entryKind: "instruction" })];
+    const parsed = parseKbJson(exportKbJson(rows));
+    if ("error" in parsed) throw new Error(parsed.error);
+    expect(parsed.rows[0].entry_kind).toBe("instruction");
+    const plan = planKbImport(parsed.rows, rows, new Set(), []);
+    expect(plan.skipped).toHaveLength(1);
   });
 
   it("plans a create and an update", () => {
