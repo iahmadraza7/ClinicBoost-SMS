@@ -7,6 +7,10 @@ the normal work: clinics, knowledge base, thresholds, kill switch and audit.
 Sign in at https://reply.clinicboost.com.au/login. There is one account. After
 a deploy you will need to sign in again.
 
+Day-to-day work is in the browser. If you SSH to the server, use the shell
+commands in `docs/RUNBOOK.md` and `docs/BACKUP_AND_RESTORE.md` — the droplet
+has Docker but no Node or npm.
+
 ## The dashboard
 
 The home page is a health check, not a report. Eight rows tell you whether the
@@ -66,8 +70,10 @@ Next steps for a new clinic:
    ```html
    <script src="https://reply.clinicboost.com.au/widget.js" data-clinic="the-slug"></script>
    ```
-5. When ready to send real SMS, set `SMS_PROVIDER=mobile_message` on the
-   server (see `docs/TECHNICAL_README.md`).
+5. When ready to send real SMS, set `SMS_PROVIDER=mobile_message` in
+   `/opt/clinicboost/.env` on the server, then run
+   `cd /opt/clinicboost && docker compose up -d app worker`. See
+   `docs/TECHNICAL_README.md`.
 
 ## Editing the knowledge base
 
@@ -148,7 +154,7 @@ Two levels:
 | Switch | Where | Effect |
 |---|---|---|
 | **Clinic kill switch** | Clinic settings → "Kill switch" | No SMS goes out **for that clinic**. Drafts still generate and queue. Operator alert SMS still works. |
-| **Global kill switch** | Server `.env` → `GLOBAL_KILL_SWITCH=true` | Nothing sends, including operator alerts. Unattended SMS alerts retry when it is turned off. |
+| **Global kill switch** | Edit `/opt/clinicboost/.env` → `GLOBAL_KILL_SWITCH=true`, then `cd /opt/clinicboost && docker compose up -d app worker` | Nothing sends, including operator alerts. Unattended SMS alerts retry when it is turned off. |
 
 Use the clinic switch when one clinic needs to pause. Use the global switch for
 an emergency (bad draft getting through, credential leak, investigation).

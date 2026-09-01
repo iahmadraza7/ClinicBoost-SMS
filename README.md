@@ -16,7 +16,10 @@ AI-assisted SMS enquiry and approval system for Australian aesthetic clinics.
 | `docs/BACKUP_AND_RESTORE.md` | Nightly backup and disaster recovery (tested). |
 | `.cursor/rules/` | Always-on rules Cursor loads automatically. |
 
-## Setup
+## Local development
+
+The production server has no Node or npm. Everything in this section runs on
+your laptop.
 
 ```bash
 cp .env.example .env.local     # host processes, DATABASE_URL points at localhost
@@ -62,13 +65,22 @@ page. The embeddable widget is `/widget.js`:
 One person, email and password, stored in the environment. There is no signup
 and no second user.
 
+**Local** — generate values on a machine with Node:
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 npm run hash-password
 ```
 
-Put the results in `.env` and `.env.local` as `AUTH_SECRET` and
-`OPERATOR_PASSWORD_HASH`, plus `OPERATOR_EMAIL`. Restart the app.
+Put the results in `.env` (server) and `.env.local` (laptop) as `AUTH_SECRET`
+and `OPERATOR_PASSWORD_HASH`, plus `OPERATOR_EMAIL`.
+
+**Server** — after editing `/opt/clinicboost/.env`, restart the app:
+
+```bash
+cd /opt/clinicboost
+docker compose up -d app worker
+```
 
 `/` (and everything else) redirects to `/login` until you sign in. The
 widget and the Mobile Message webhooks stay public on purpose: a lead submitting
@@ -107,8 +119,10 @@ idea as `SMS_PROVIDER=console`.
 Credentials alone never cause a send, so the account can be configured well
 before anyone is ready to go live.
 
+**Local** — read-only checks (requires Node on your laptop):
+
 ```bash
-node scripts/check-mobile-message.mjs   # credit balance and registered senders, read-only
+node scripts/check-mobile-message.mjs   # credit balance and registered senders
 node scripts/check-anthropic.mjs        # Claude key and model
 ```
 
@@ -127,7 +141,7 @@ valid signature: they are public URLs that write to the database and trigger a
 paid API call, so an unsigned request is both a data integrity problem and a way
 to spend someone else's money.
 
-To exercise them locally without a real message:
+To exercise them locally without a real message (**local**, Node required):
 
 ```bash
 node scripts/post-test-webhook.mjs inbound "--message=how long do results last"
@@ -145,7 +159,9 @@ first dedicated number is bought, `SHARED_NUMBER_CLINIC_SLUG` says which clinic
 owns traffic on a number no clinic claims. Moving to per-clinic numbers is
 setting `sms_number` and clearing that variable, not a rebuild.
 
-## Deploy
+## Deploy (server)
+
+SSH in, pull, rebuild. The server has Docker and git, but no `npm` or `node`.
 
 ```bash
 ssh -i ~/.ssh/reflex_sms -o IdentitiesOnly=yes USER@168.144.174.105
@@ -179,18 +195,27 @@ docker compose exec app node dist/seed.cjs
 Watch `df -h /` around every build. The health panel Disk row turns amber
 at 75 percent and red at 85.
 
-### Backups
+### Backups (server)
 
-Nightly Postgres dumps with seven-day rotation:
+Nightly Postgres dumps with seven-day rotation. Install once:
 
 ```bash
+cd /opt/clinicboost
 sudo cp deploy/clinicboost-backup.cron /etc/cron.d/clinicboost-backup
+sudo chmod 644 /etc/cron.d/clinicboost-backup
 ```
 
-Manual backup: `./scripts/backup-db.sh` or `npm run db:backup`. Full procedure
+Manual backup on the server:
+
+```bash
+cd /opt/clinicboost
+./scripts/backup-db.sh
+```
+
+On a laptop with Node, `npm run db:backup` runs the same script. Full procedure
 in `docs/BACKUP_AND_RESTORE.md`.
 
-## Tests
+## Tests (local)
 
 ```bash
 npm test          # once
@@ -202,7 +227,10 @@ against the real Beauty Soiree prices, links and do-not-answer list, taken from
 `src/server/seed/beauty-soiree.ts`, which asserts on load that it has not
 drifted from the converted skill file.
 
-## Schema changes
+## Schema changes (local)
+
+Developer workflow on a machine with Node. Migrations ship in git; the server
+applies them automatically when the `app` container starts.
 
 ```bash
 # edit src/server/db/schema.ts, then

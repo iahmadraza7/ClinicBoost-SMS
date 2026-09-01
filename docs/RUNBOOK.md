@@ -16,7 +16,7 @@ Open https://reply.clinicboost.com.au/ first. The health panel is eight rows:
 | Anthropic | The Claude key answered a one-token ping | The key is missing, a placeholder, rejected, or the model name is wrong |
 | Mobile Message | Credits remain | Test mode, no credits, or the API user/password is wrong |
 | Resend | The sending key can send | Missing `re_` key, key rejected, or the from domain is not verified. A sending-only key is correct; the check does not use the domains list |
-| Worker | The every-minute sweep ran recently | `npm run worker:dev` locally, or the `worker` container on the server |
+| Worker | The every-minute sweep ran recently | On the server: `cd /opt/clinicboost && docker compose ps worker` must show running. Locally only: `npm run worker:dev` |
 | Last send | An SMS actually left | Amber until the first real send. Not a failure on its own |
 
 Fix the red or amber row before looking at code.
@@ -45,7 +45,7 @@ The space is Docker's build cache, not leftover images. `docker image prune -af`
 reclaimed 392kB and did not help. Two rebuilds put 2.2GB in the cache and
 took an 8.7GB disk to 75 percent.
 
-After a successful `docker compose up -d --build`:
+After a successful `cd /opt/clinicboost && docker compose up -d --build`:
 
 ```bash
 docker builder prune -af
@@ -62,7 +62,8 @@ database is broken.
 2. Check `OPERATOR_NOTIFY_EMAIL` is set on the server and that
    `clinics.notify_email` is on for that clinic.
 3. If `RESEND_API_KEY` is empty, the worker logs the email instead of sending
-   it. Look at the worker log for `[email:console]`.
+   it. On the server: `cd /opt/clinicboost && docker compose logs worker --tail 50`
+   and look for `[email:console]`.
 4. The email body is only the clinic name and a link to the queue. It will
    never contain the customer's question or number. Open
    https://reply.clinicboost.com.au/queue to see the draft.
@@ -177,19 +178,19 @@ Recorded 28 Aug 2026, first attempt to clone into `/opt/clinicboost`.
    gitignored (client content) and dockerignored. The image has `dist/seed.cjs`
    but not the markdown. Copy `knowledge-source/converted/beauty-soiree.md`
    onto the host next to compose. The app container mounts that directory
-   read-only. Then `docker compose exec app node dist/seed.cjs`. If the
+   read-only. Then `cd /opt/clinicboost && docker compose exec app node dist/seed.cjs`. If the
    file is missing, seed names that path and exits before writing Beauty
    Soiree.
 4. **Disk.** 8.7GB total. The space goes into the Docker **build cache**,
    not leftover images. Two rebuilds put 2.2GB there and took the volume
    to 75 percent. `docker image prune -af` reclaimed 392kB and is not
-   the fix. After a successful `docker compose up -d --build` run
+   the fix. After a successful `cd /opt/clinicboost && docker compose up -d --build` run
    `docker builder prune -af`. The next build is slower with no cache.
    Watch `df -h /`. Do not `npm ci` on the host as well as in the image.
 5. **`.env` must stay out of the image.** `.dockerignore` already lists
    `.env` and `.env.local`. Compose mounts it with `env_file: .env`. After
    the first successful build, confirm with
-   `docker compose run --rm --entrypoint sh app -c "test ! -f /app/.env && echo no-.env"`
+   `cd /opt/clinicboost && docker compose run --rm --entrypoint sh app -c "test ! -f /app/.env && echo no-.env"`
    and that `SMS_PROVIDER` inside the container is `console`.
 6. **Operator password.** Do not copy `OPERATOR_PASSWORD_HASH` from the
    laptop. Hash a new password on the laptop (`npm run hash-password`),

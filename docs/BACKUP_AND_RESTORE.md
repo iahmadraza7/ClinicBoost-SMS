@@ -3,6 +3,9 @@
 Written for the owner. The database holds every enquiry, draft, knowledge base
 entry, audit row and queue job. If the disk dies, this is what you rebuild from.
 
+**Server commands** below assume SSH access and `cd /opt/clinicboost`. The
+droplet has Docker but no Node or npm.
+
 ## What is backed up
 
 A plain SQL dump of the whole `clinicboost` Postgres database: all clinics, all
@@ -87,7 +90,8 @@ scp -i ~/.ssh/reflex_sms USER@168.144.174.105:/opt/clinicboost/backups/clinicboo
 
 ## Nightly backup (server setup)
 
-Scripts are in the repo:
+The production server has no Node or npm. Use the shell scripts from
+`/opt/clinicboost` (they call `docker compose` internally).
 
 | Script | Purpose |
 |---|---|
@@ -98,21 +102,22 @@ Scripts are in the repo:
 Install the cron job once on the server:
 
 ```bash
-sudo cp /opt/clinicboost/deploy/clinicboost-backup.cron /etc/cron.d/clinicboost-backup
+cd /opt/clinicboost
+sudo cp deploy/clinicboost-backup.cron /etc/cron.d/clinicboost-backup
 sudo chmod 644 /etc/cron.d/clinicboost-backup
 ```
 
 That runs `./scripts/backup-db.sh` every night at **03:00** server time and
 appends to `/var/log/clinicboost-backup.log`.
 
-Run a backup manually any time:
+**Server** — manual backup:
 
 ```bash
 cd /opt/clinicboost
 ./scripts/backup-db.sh
 ```
 
-From the project root with npm:
+**Local development** (laptop with Node; same scripts, Docker must be running):
 
 ```bash
 npm run db:backup
@@ -136,8 +141,16 @@ touch a production database.
 Re-run the test yourself after any change to the backup scripts, or on the
 server after first install:
 
+**Server:**
+
 ```bash
 cd /opt/clinicboost
+./scripts/test-restore.sh
+```
+
+**Local development:**
+
+```bash
 npm run db:restore-test
 ```
 
@@ -156,12 +169,14 @@ cd /opt/clinicboost
 Default target is `clinicboost_restore_test`. To inspect:
 
 ```bash
+cd /opt/clinicboost
 docker compose exec db psql -U clinicboost -d clinicboost_restore_test -c "SELECT slug, name FROM clinics;"
 ```
 
 Drop when finished:
 
 ```bash
+cd /opt/clinicboost
 docker compose exec db psql -U clinicboost -d postgres -c "DROP DATABASE clinicboost_restore_test;"
 ```
 
@@ -172,7 +187,8 @@ database. Stop traffic first.
 
 1. Copy a backup file onto the server if it is not already in `backups/`.
 2. Put the app in maintenance mode: set `GLOBAL_KILL_SWITCH=true` in `.env` and
-   `docker compose up -d app worker` (or stop app and worker).
+   run `cd /opt/clinicboost && docker compose up -d app worker` (or
+   `docker compose stop app worker`).
 3. Restore:
 
    ```bash
@@ -198,6 +214,7 @@ Often disk full. See `docs/RUNBOOK.md` (Disk row). Free space with
 `docker builder prune -af`, then restart:
 
 ```bash
+cd /opt/clinicboost
 docker compose up -d db
 ```
 
@@ -208,8 +225,8 @@ volume is corrupted, restore from the newest good backup as above.
 
 | Task | How often |
 |---|---|
-| Nightly `backup-db.sh` via cron | Automatic |
+| Nightly `backup-db.sh` via cron | Automatic (server) |
 | Backup row on dashboard stays green | Should be under 36 hours old |
 | Copy newest `.sql.gz` off server (optional Spaces upload) | Weekly, or before risky changes |
-| Run `npm run db:restore-test` | After script changes; once after server install |
+| Run `./scripts/test-restore.sh` on server | After script changes; once after server install |
 | Confirm backup log has no errors | Monthly: `tail /var/log/clinicboost-backup.log` |
