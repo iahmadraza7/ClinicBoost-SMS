@@ -1,17 +1,23 @@
-"use client";
+import { loginErrorMessage, type LoginErrorCode } from "@/server/auth/login-messages";
 
-import { useActionState } from "react";
+const LOGIN_ERRORS = new Set<LoginErrorCode>(["wrong", "rate", "config"]);
 
-import { login, type LoginState } from "./actions";
+function parseLoginError(raw: string | undefined): LoginErrorCode | null {
+  if (!raw || !LOGIN_ERRORS.has(raw as LoginErrorCode)) return null;
+  return raw as LoginErrorCode;
+}
 
-export function LoginForm({ from }: { from: string }) {
-  const [state, action, pending] = useActionState<LoginState, FormData>(
-    login,
-    null,
-  );
+export function LoginForm({
+  from,
+  error,
+}: {
+  from: string;
+  error?: string;
+}) {
+  const errorCode = parseLoginError(error);
 
   return (
-    <form action={action} className="mt-6 space-y-4">
+    <form method="POST" action="/api/login" className="mt-6 space-y-4">
       <input type="hidden" name="from" value={from} />
 
       <label className="block text-sm">
@@ -37,18 +43,17 @@ export function LoginForm({ from }: { from: string }) {
         />
       </label>
 
-      {state?.error && (
+      {errorCode && (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          {state.error}
+          {loginErrorMessage(errorCode)}
         </p>
       )}
 
       <button
         type="submit"
-        disabled={pending}
-        className="w-full rounded-md bg-neutral-900 px-3 py-2 text-sm text-white hover:bg-neutral-800 disabled:opacity-40"
+        className="w-full rounded-md bg-neutral-900 px-3 py-2 text-sm text-white hover:bg-neutral-800"
       >
-        {pending ? "Signing in..." : "Sign in"}
+        Sign in
       </button>
     </form>
   );

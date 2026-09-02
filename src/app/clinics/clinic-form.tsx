@@ -22,8 +22,8 @@ export type ClinicFormValues = {
   hours: string | null;
   phone: string | null;
   paymentNotes: string | null;
-  bookingPlatform: BookingPlatform;
-  closeType: CloseType;
+  bookingPlatform: BookingPlatform | null;
+  closeType: CloseType | null;
   smsNumber: string | null;
   confidenceThreshold: number;
   killSwitch: boolean;
@@ -131,11 +131,13 @@ export function ClinicForm({
       <Field label="Booking platform">
         <select
           name="bookingPlatform"
-          required
+          required={mode === "create"}
           defaultValue={clinic?.bookingPlatform ?? ""}
           className={inputClass}
         >
-          {mode === "create" && <option value="">Select one</option>}
+          {(mode === "create" || !clinic?.bookingPlatform) && (
+            <option value="">Not set</option>
+          )}
           {BOOKING_PLATFORMS.map((p) => (
             <option key={p.value} value={p.value}>
               {p.label}
@@ -153,6 +155,26 @@ export function ClinicForm({
           true for this clinic.
         </p>
         <div className="mt-3 grid gap-3">
+          {mode === "edit" && !clinic?.closeType && (
+            <label className="flex cursor-pointer gap-3 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 has-[:checked]:border-neutral-900">
+              <input
+                type="radio"
+                name="closeType"
+                value=""
+                defaultChecked
+                className="mt-1"
+              />
+              <span>
+                <span className="block text-sm font-medium text-neutral-900">
+                  Not set
+                </span>
+                <span className="mt-1 block text-sm text-neutral-600">
+                  Pick once you know whether the customer books via link or
+                  someone confirms by hand.
+                </span>
+              </span>
+            </label>
+          )}
           {CLOSE_TYPE_CHOICES.map((choice) => (
             <label
               key={choice.value}
@@ -162,7 +184,7 @@ export function ClinicForm({
                 type="radio"
                 name="closeType"
                 value={choice.value}
-                required
+                required={mode === "create"}
                 defaultChecked={clinic?.closeType === choice.value}
                 className="mt-1"
               />

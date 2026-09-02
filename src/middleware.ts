@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { isPublicPath } from "@/server/auth/paths";
+import { staleServerActionResponse } from "@/server/auth/stale-action";
 import {
   COOKIE_NAME,
   expiredSessionCookie,
@@ -18,6 +19,9 @@ import {
  * bounced / and /login until the browser gave up.
  */
 export async function middleware(request: NextRequest) {
+  const staleAction = staleServerActionResponse(request);
+  if (staleAction) return staleAction;
+
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(COOKIE_NAME)?.value;
   const session = await readSession(token, process.env.AUTH_SECRET ?? "");

@@ -49,6 +49,28 @@ export const CLOSE_TYPE_CHOICES: {
   },
 ];
 
+export function clinicSetupGaps(clinic: {
+  bookingPlatform: string | null;
+  closeType: string | null;
+  widgetOrigins: string[];
+}): string[] {
+  const gaps: string[] = [];
+  if (!clinic.bookingPlatform) {
+    gaps.push("Booking platform is not set. Pick Fresha, Timely, Wix or Other in settings.");
+  }
+  if (!clinic.closeType) {
+    gaps.push(
+      "Close type is not set. Pick whether the customer confirms via link or someone at the clinic confirms by hand.",
+    );
+  }
+  if (clinic.widgetOrigins.length === 0) {
+    gaps.push(
+      "No widget origins configured. The landing page cannot submit enquiries until you add its URL.",
+    );
+  }
+  return gaps;
+}
+
 export const BOOKING_PLATFORMS: { value: BookingPlatform; label: string }[] = [
   { value: "fresha", label: "Fresha" },
   { value: "timely", label: "Timely" },
@@ -65,6 +87,18 @@ const RESERVED_SLUGS = new Set([
   "health",
   "audit",
 ]);
+
+const bookingPlatformSchema = z
+  .union([
+    z.enum(["fresha", "timely", "wix", "other"]),
+    z.literal(""),
+    z.null(),
+  ])
+  .transform((v) => (v === "" ? null : v));
+
+const closeTypeSchema = z
+  .union([z.enum(["link_only", "manual"]), z.literal(""), z.null()])
+  .transform((v) => (v === "" ? null : v));
 
 export const clinicFieldsSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(200),
@@ -84,10 +118,8 @@ export const clinicFieldsSchema = z.object({
     .trim()
     .max(500)
     .transform((v) => (v === "" ? null : v)),
-  bookingPlatform: z.enum(["fresha", "timely", "wix", "other"]),
-  closeType: z.enum(["link_only", "manual"], {
-    message: "Pick how a booking gets confirmed",
-  }),
+  bookingPlatform: bookingPlatformSchema,
+  closeType: closeTypeSchema,
   smsNumber: z
     .string()
     .trim()
@@ -140,9 +172,26 @@ export const clinicSlugSchema = z
   )
   .refine((slug) => !RESERVED_SLUGS.has(slug), "That slug is reserved");
 
-export const createClinicSchema = clinicFieldsSchema.extend({
-  slug: clinicSlugSchema,
-});
+export const createClinicSchema = clinicFieldsSchema
+  .extend({
+    slug: clinicSlugSchema,
+  })
+  .superRefine((data, ctx) => {
+    if (!data.bookingPlatform) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Pick a booking platform",
+        path: ["bookingPlatform"],
+      });
+    }
+    if (!data.closeType) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Pick how a booking gets confirmed",
+        path: ["closeType"],
+      });
+    }
+  });
 
 export type ClinicFields = z.infer<typeof clinicFieldsSchema>;
 export type CreateClinicFields = z.infer<typeof createClinicSchema>;
@@ -330,8 +379,8 @@ export function clinicAuditShape(clinic: {
   hours: string | null;
   phone: string | null;
   paymentNotes: string | null;
-  bookingPlatform: string;
-  closeType: string;
+  bookingPlatform: string | null;
+  closeType: string | null;
   smsNumber: string | null;
   confidenceThreshold: number;
   killSwitch: boolean;

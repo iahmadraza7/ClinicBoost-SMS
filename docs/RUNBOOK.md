@@ -110,6 +110,42 @@ Open https://reply.clinicboost.com.au/login and sign in again. This happens
 after every deploy. If an old build is still serving and the page still
 loops, clear cookies for `reply.clinicboost.com.au` and retry.
 
+## Login does nothing after a deploy
+
+**Symptom:** The sign-in form sits there. Submit does nothing, or the app
+logs `The Server Reference ID did not match the expected format`.
+
+**Cause:** The browser cached JavaScript from the previous build. That
+bundle posts an old server action id. The new build rejects it. Login used
+to go through a server action, so a locked-out operator could not sign in
+until they hard-refreshed or cleared cache.
+
+**What we did:**
+
+1. **Login is a plain POST** to `/api/login`, not a server action. It works
+   even when every other page still has stale JS. After deploy, open
+   `/login` and sign in normally.
+2. **Stale server actions reload the page.** Middleware rejects action ids
+   that are not in the current build and returns a short HTML page that
+   reloads. A small client script does the same if a stale action response
+   slips through during a rolling deploy.
+
+If login still fails, hard-refresh once (`Ctrl+Shift+R` or
+`Cmd+Shift+R`), then try again. You do not need to clear all site data
+unless the redirect loop section above still applies.
+
+## After a deploy, buttons on other pages do nothing once
+
+**Symptom:** Approve, save, sign out, or other buttons stop working right
+after a deploy. The page may look normal.
+
+**Cause:** Same stale JavaScript bundle as login. Those buttons still use
+server actions.
+
+**Fix:** Click once. The page should reload automatically and pick up the
+new bundle. If it does not, hard-refresh once. Login does not depend on
+this; use `/login` if you are locked out.
+
 ## The widget on the landing page does nothing
 
 1. The clinic must not be archived.

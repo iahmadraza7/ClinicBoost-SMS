@@ -77,7 +77,9 @@ function ClinicTable({
   return (
     <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-300 bg-white">
       {clinics.map((clinic) => {
-        const close = CLOSE_TYPE_CHOICES.find((c) => c.value === clinic.closeType);
+        const close = clinic.closeType
+          ? CLOSE_TYPE_CHOICES.find((c) => c.value === clinic.closeType)
+          : null;
         return (
           <li key={clinic.id}>
             <Link
@@ -100,7 +102,7 @@ function ClinicTable({
               <div className="sm:text-right">
                 <SmsStatus smsNumber={clinic.smsNumber} size="xs" />
                 <p className="mt-1 text-sm text-neutral-600">
-                  {close?.title ?? clinic.closeType}
+                  {close?.title ?? (clinic.closeType ? clinic.closeType : "Close type not set")}
                 </p>
               </div>
             </Link>

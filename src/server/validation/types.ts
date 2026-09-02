@@ -30,7 +30,7 @@ export type ClinicFact = {
   slug: string;
   confidenceThreshold: number;
   killSwitch: boolean;
-  closeType: CloseType;
+  closeType: CloseType | null;
 };
 
 export type ValidationContext = {

@@ -75,10 +75,11 @@ export const clinics = pgTable("clinics", {
   hours: text("hours"),
   phone: text("phone"),
   paymentNotes: text("payment_notes"),
-  bookingPlatform: text("booking_platform").$type<BookingPlatform>().notNull(),
+  bookingPlatform: text("booking_platform").$type<BookingPlatform>(),
   // A `manual` clinic must never be told the booking is confirmed. A
   // `link_only` clinic must never be told someone will get back to them.
-  closeType: text("close_type").$type<CloseType>().notNull(),
+  // Null when the skill file did not determine this (e.g. nhb-endermologie).
+  closeType: text("close_type").$type<CloseType>(),
   smsNumber: text("sms_number"),
   confidenceThreshold: integer("confidence_threshold").notNull().default(90),
   killSwitch: boolean("kill_switch").notNull().default(false),

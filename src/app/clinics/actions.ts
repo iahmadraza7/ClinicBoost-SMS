@@ -8,6 +8,7 @@ import {
   clinicAuditShape,
   clinicFieldsFromForm,
   clinicSlugSchema,
+  createClinicSchema,
   liveVoiceFromPending,
   parseVoice,
   pendingVoiceAfterSave,
@@ -42,12 +43,22 @@ export async function createClinic(
   const parsed = clinicFieldsFromForm(form);
   if (!parsed.fields) return { error: parsed.error ?? "Invalid clinic" };
 
-  const existing = await repo.clinics.getClinicBySlug(slug);
-  if (existing) {
-    return { error: `A clinic with slug "${slug}" already exists` };
+  const createParsed = createClinicSchema.safeParse({
+    slug,
+    ...parsed.fields,
+  });
+  if (!createParsed.success) {
+    return {
+      error: createParsed.error.issues[0]?.message ?? "Invalid clinic",
+    };
   }
 
-  const fields = parsed.fields;
+  const { slug: clinicSlug, ...clinicFields } = createParsed.data;
+
+  const existing = await repo.clinics.getClinicBySlug(clinicSlug);
+  if (existing) {
+    return { error: `A clinic with slug "${clinicSlug}" already exists` };
+  }
 
   const voiceParsed = parseVoice(String(form.get("voice") ?? ""));
   if ("error" in voiceParsed) return { error: voiceParsed.error };
@@ -60,8 +71,8 @@ export async function createClinic(
   await repo.withTransaction(async (tx) => {
     const clinic = await repo.clinics.createClinic(
       {
-        slug,
-        ...fields,
+        slug: clinicSlug,
+        ...clinicFields,
         voicePending: pendingVoiceAfterSave(submittedVoice, null),
       },
       tx,

@@ -113,8 +113,14 @@ describe("createClinicSchema", () => {
   };
 
   it("requires a close type rather than defaulting one", () => {
+    expect(createClinicSchema.safeParse({ ...base, closeType: null }).success).toBe(
+      false,
+    );
+  });
+
+  it("requires a booking platform on create", () => {
     expect(
-      createClinicSchema.safeParse({ ...base, closeType: undefined }).success,
+      createClinicSchema.safeParse({ ...base, bookingPlatform: null }).success,
     ).toBe(false);
   });
 

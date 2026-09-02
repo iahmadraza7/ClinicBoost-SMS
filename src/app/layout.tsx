@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { StaleActionRecovery } from "./stale-action-recovery";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en-AU">
       <body className="bg-neutral-50 text-neutral-900 antialiased">
+        <StaleActionRecovery />
         {children}
       </body>
     </html>

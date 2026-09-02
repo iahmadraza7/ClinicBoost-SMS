@@ -4,7 +4,12 @@ import { notFound } from "next/navigation";
 import { DashboardHeader } from "@/app/dashboard-header";
 import { requireOperator } from "@/server/auth";
 import { env } from "@/server/env";
+import { clinicSetupGaps } from "@/server/clinics/fields";
 import * as repo from "@/server/repo";
+import {
+  IMPORT_GAP_LABELS,
+  importGapsForSlug,
+} from "@/server/seed/all-clinics";
 
 import { ArchiveControls } from "../archive-controls";
 import { ClinicForm } from "../clinic-form";
@@ -24,6 +29,9 @@ export default async function ClinicDetailPage({
   const { slug } = await params;
   const clinic = await repo.clinics.getClinicBySlug(slug);
   if (!clinic) notFound();
+
+  const setupGaps = clinicSetupGaps(clinic);
+  const importGaps = importGapsForSlug(clinic.slug);
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-8">
@@ -48,6 +56,28 @@ export default async function ClinicDetailPage({
       </DashboardHeader>
 
       <ClinicSectionNav slug={clinic.slug} current="settings" />
+
+      {setupGaps.length > 0 && (
+        <div className="mb-6 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <p className="font-medium">Setup incomplete</p>
+          <ul className="mt-1 list-inside list-disc">
+            {setupGaps.map((gap) => (
+              <li key={gap}>{gap}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {importGaps.length > 0 && (
+        <div className="mb-6 rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-800">
+          <p className="font-medium">Missing from skill file</p>
+          <ul className="mt-1 list-inside list-disc">
+            {importGaps.map((gap) => (
+              <li key={gap}>{IMPORT_GAP_LABELS[gap]}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {clinic.archivedAt ? (
         <ArchiveControls slug={clinic.slug} archived />

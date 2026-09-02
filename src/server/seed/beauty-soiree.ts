@@ -1,4 +1,8 @@
 import type { AnswerMode, KbCategory, KbEntryKind } from "../db/schema";
+import type { ClinicSeedPack, SeedEntry } from "./types";
+
+export type { SeedEntry };
+export { seedEntryKind } from "./types";
 
 /**
  * Beauty Soiree, transcribed from knowledge-source/converted/beauty-soiree.md.
@@ -52,39 +56,6 @@ export const OFFERS = [
     notes: "50% off, INTRO OFFER for new clients only",
   },
 ];
-
-export type SeedEntry = {
-  entryKey: string;
-  category: KbCategory;
-  offerKey?: string;
-  title: string;
-  body: string;
-  answerMode?: AnswerMode;
-  /**
-   * `fact` (default) may be cited. `instruction` is behaviour. Policy
-   * entries and price-contrast are instructions even when answerable.
-   */
-  entryKind?: KbEntryKind;
-  blockDeflect?: string;
-  /**
-   * How the validator recognises that this topic has come up. Drawn from the
-   * wording of the "Unconfirmed - do not answer" list itself. Only the blocked
-   * entries need these; an answerable entry is matched by citation.
-   */
-  triggerTerms?: string[];
-};
-
-/**
- * Policy is behaviour. price-contrast is stored under an offer but is an
- * instruction for how to talk about competitors, not a fact the customer
- * may be told.
- */
-export function seedEntryKind(entry: SeedEntry): KbEntryKind {
-  if (entry.entryKind) return entry.entryKind;
-  if (entry.category === "policy") return "instruction";
-  if (entry.entryKey.endsWith(".price-contrast")) return "instruction";
-  return "fact";
-}
 
 const DEFLECT_TO_LISA =
   "That one is best answered by Lisa directly. Text or call her on 0405 087 121 and she will sort you out, or it gets covered at your appointment.";
@@ -446,3 +417,15 @@ export const SOURCE_ASSERTIONS = [
   "Ultraformer III, TGA-approved #267732",
   "Unconfirmed - do not answer",
 ];
+
+export const PACK: ClinicSeedPack = {
+  sourceFile: "knowledge-source/converted/beauty-soiree.md",
+  clinic: CLINIC,
+  offers: OFFERS,
+  entries: ENTRIES,
+  sourceAssertions: SOURCE_ASSERTIONS,
+  importGaps: [],
+  importNotes: [
+    "Only clinic with an explicit do-not-answer list and compliance block in the skill file.",
+  ],
+};

@@ -16,6 +16,9 @@ COPY . .
 # `next build` imports the app's modules, which validate the environment on
 # load. No database is reachable at build time and none is needed, so this
 # placeholder satisfies the check. The real value comes from .env at runtime.
+# `npm run build` runs next twice. Pass one writes the action manifest;
+# extract writes `server-action-ids.json`; pass two inlines those ids into
+# middleware via next.config `env`. One pass cannot do both.
 RUN DATABASE_URL=postgresql://build:build@localhost:5432/build npm run build
 # The worker, migrate and seed scripts are bundled to single files so their
 # runtime images need no node_modules at all. pg-native is optional inside pg

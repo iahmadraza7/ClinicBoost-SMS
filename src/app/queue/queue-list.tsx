@@ -29,7 +29,7 @@ export type QueueRow = {
   contactMobile: string;
   clinicName: string;
   clinicSlug: string;
-  closeType: CloseType;
+  closeType: CloseType | null;
   killSwitch: boolean;
 };
 
@@ -268,10 +268,20 @@ export function QueueList({
       <section className="rounded-lg border border-neutral-300 bg-white p-5">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="font-medium text-neutral-900">{row.clinicName}</span>
-          <Chip tone={row.closeType === "manual" ? "amber" : "neutral"}>
+          <Chip
+            tone={
+              row.closeType === "manual"
+                ? "amber"
+                : row.closeType === "link_only"
+                  ? "neutral"
+                  : "amber"
+            }
+          >
             {row.closeType === "manual"
               ? "person confirms"
-              : "customer books"}
+              : row.closeType === "link_only"
+                ? "customer books"
+                : "close not set"}
           </Chip>
           {row.killSwitch && <Chip tone="red">kill switch on</Chip>}
           {row.editedBody && <Chip tone="neutral">edited, not sent</Chip>}

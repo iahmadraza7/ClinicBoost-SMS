@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import { isPublicPath, safeReturnTo } from "./paths";
 
 describe("isPublicPath", () => {
-  it("lets the operator reach the login page", () => {
+  it("lets the operator reach the login page and POST handler", () => {
     expect(isPublicPath("/login")).toBe(true);
     expect(isPublicPath("/login/")).toBe(true);
+    expect(isPublicPath("/api/login")).toBe(true);
   });
 
   it("lets the widget through, including OPTIONS on the clinic slug", () => {

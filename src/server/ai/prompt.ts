@@ -35,12 +35,18 @@ export function buildClinicPrompt(ctx: ReplyContext): string {
         ? `Hours: ${clinic.hours}`
         : "Hours: NOT CONFIRMED. Do not state opening hours.",
       clinic.paymentNotes ? `Payment: ${clinic.paymentNotes}` : null,
-      `Booking platform: ${clinic.bookingPlatform}`,
+      clinic.bookingPlatform
+        ? `Booking platform: ${clinic.bookingPlatform}`
+        : "Booking platform: NOT SET. Do not assume self-serve or manual close.",
     ]
       .filter(Boolean)
       .join("\n"),
 
-    `# CLOSE BEHAVIOUR\n\n${CLOSE_BEHAVIOUR[clinic.closeType]}`,
+    `# CLOSE BEHAVIOUR\n\n${
+      clinic.closeType
+        ? CLOSE_BEHAVIOUR[clinic.closeType]
+        : "Close type is not configured for this clinic. Do not tell the customer a booking is confirmed or send a link-only close unless a knowledge base instruction says otherwise. Queue anything that needs a booking decision."
+    }`,
     offersSection(ctx.offers),
     doNotAnswerSection(ctx.kbEntries),
     behaviourSection(ctx.kbEntries),
