@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { isPublicPath } from "@/server/auth/paths";
+import { absolutePublicUrl } from "@/server/auth/public-url";
 import { staleServerActionResponse } from "@/server/auth/stale-action";
 import {
   COOKIE_NAME,
@@ -17,6 +18,9 @@ import {
  * A cookie that fails validation is expired on the way to /login. After a
  * deploy the browser still sends yesterday's cookie; leaving it in place
  * bounced / and /login until the browser gave up.
+ *
+ * Redirects must not use request.url: behind Caddy the app binds 0.0.0.0:3000
+ * and that would send the browser to an unreachable Location.
  */
 export async function middleware(request: NextRequest) {
   const staleAction = staleServerActionResponse(request);
@@ -30,7 +34,7 @@ export async function middleware(request: NextRequest) {
   if (isPublicPath(pathname)) {
     if (pathname === "/login" || pathname.startsWith("/login/")) {
       if (session) {
-        return NextResponse.redirect(new URL("/", request.url));
+        return NextResponse.redirect(publicRedirect("/", request));
       }
       const next = NextResponse.next();
       if (stale) clearStaleSession(next, request);
@@ -41,11 +45,19 @@ export async function middleware(request: NextRequest) {
 
   if (session) return NextResponse.next();
 
-  const login = new URL("/login", request.url);
+  const login = publicRedirect("/login", request);
   login.searchParams.set("from", pathname);
   const response = NextResponse.redirect(login);
   if (stale) clearStaleSession(response, request);
   return response;
+}
+
+function publicRedirect(path: string, request: NextRequest): URL {
+  return absolutePublicUrl(path, {
+    appUrl: process.env.APP_URL,
+    forwardedHost: request.headers.get("x-forwarded-host"),
+    forwardedProto: request.headers.get("x-forwarded-proto"),
+  });
 }
 
 /**

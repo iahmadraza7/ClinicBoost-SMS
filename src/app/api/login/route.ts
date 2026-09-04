@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { attemptLogin } from "@/server/auth/login-flow";
 import { safeReturnTo } from "@/server/auth/paths";
+import { absolutePublicUrl } from "@/server/auth/public-url";
 import {
   COOKIE_NAME,
   issueSession,
@@ -27,20 +28,30 @@ export async function POST(request: Request) {
   });
 
   if (!result.ok) {
-    const login = new URL("/login", request.url);
+    const login = redirectUrl("/login", request);
     login.searchParams.set("error", result.error);
     login.searchParams.set("from", from);
     return NextResponse.redirect(login);
   }
 
   const token = await issueSession(result.email, env.AUTH_SECRET!);
-  const response = NextResponse.redirect(new URL(result.redirectTo, request.url));
+  const response = NextResponse.redirect(
+    redirectUrl(result.redirectTo, request),
+  );
   response.cookies.set(
     COOKIE_NAME,
     token,
     sessionCookieOptions(env.APP_URL.startsWith("https://")),
   );
   return response;
+}
+
+function redirectUrl(path: string, request: Request): URL {
+  return absolutePublicUrl(path, {
+    appUrl: env.APP_URL,
+    forwardedHost: request.headers.get("x-forwarded-host"),
+    forwardedProto: request.headers.get("x-forwarded-proto"),
+  });
 }
 
 function clientIpFromRequest(request: Request): string {
