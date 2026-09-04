@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 
 import { S4_BASELINE_TERMS } from "../compliance/s4-baseline";
 import * as repo from "../repo";
@@ -146,7 +147,7 @@ export async function seedClinicPack(
   };
 }
 
-export function writeImportReport(results: SeedResult[]) {
+export function formatImportReport(results: SeedResult[]): string {
   const lines: string[] = [
     "# Clinic import report",
     "",
@@ -188,7 +189,35 @@ export function writeImportReport(results: SeedResult[]) {
     }
   }
 
-  writeFileSync(REPORT_PATH, `${lines.join("\n")}\n`, "utf8");
+  return `${lines.join("\n")}\n`;
+}
+
+/**
+ * Always prints the report. Writes docs/CLINIC_IMPORT_REPORT.md only when
+ * that directory already exists (local checkout). The production image has
+ * no docs/, so a write there must never fail the seed.
+ */
+export function writeImportReport(results: SeedResult[]): void {
+  const body = formatImportReport(results);
+  console.log(body);
+
+  const dir = dirname(REPORT_PATH);
+  if (!existsSync(dir)) {
+    console.log(
+      `import report not written to ${REPORT_PATH}: ${dir}/ is not in this environment`,
+    );
+    return;
+  }
+
+  try {
+    writeFileSync(REPORT_PATH, body, "utf8");
+    console.log(`import report written to ${REPORT_PATH}`);
+  } catch (error) {
+    console.warn(
+      `import report not written to ${REPORT_PATH}:`,
+      error instanceof Error ? error.message : error,
+    );
+  }
 }
 
 export function printSeedSummary(results: SeedResult[]) {
@@ -210,5 +239,4 @@ export function printSeedSummary(results: SeedResult[]) {
         .join("\n"),
     );
   }
-  console.log(`\nimport report written to ${REPORT_PATH}`);
 }
